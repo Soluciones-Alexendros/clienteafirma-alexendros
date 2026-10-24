@@ -52,20 +52,25 @@ jobs:
       - name: Build with Maven (skip failing modules)
         run: mvn -B clean compile -DskipTests -Denv=install -pl '!afirma-simple,!afirma-ui-simple-configurator,!afirma-server-triphase-signer,!afirma-signature-retriever,!afirma-signature-storage' -am
 
+      # Default CodeQL setup is enabled on this repo; advanced upload conflicts
+      # ("analyses from advanced configurations cannot be processed when the
+      # default setup is enabled"). Keep artifacts for Merge SARIF; Alejandro
+      # can disable default setup in Settings → Code security to re-enable upload.
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v3
         with:
           category: "/language:${{ matrix.language }}"
-          upload: true
+          upload: false
 
       - name: Upload CodeQL SARIF as artifact
         uses: actions/upload-artifact@v4
         with:
           name: codeql-results
           path: |
+            **/results/**/*.sarif
             **/codeql-*.sarif
             **/*codeql*.sarif
-          if-no-files-found: ignore
+          if-no-files-found: warn
           retention-days: 7
 
   semgrep:
@@ -119,27 +124,33 @@ jobs:
       contents: read
     steps:
       - name: Download CodeQL SARIF
+        continue-on-error: true
         uses: actions/download-artifact@v4
         with:
           name: codeql-results
           path: sarif/codeql
 
       - name: Download Semgrep SARIF
+        continue-on-error: true
         uses: actions/download-artifact@v4
         with:
           name: semgrep-results
           path: sarif/semgrep
 
       - name: Merge SARIF files
+        id: merge
         run: |
           mkdir -p sarif/merged
-          # CodeQL uploads multiple SARIF files, Semgrep uploads one
-          # The upload-sarif action can accept a directory and will merge them
           cp -r sarif/codeql/* sarif/merged/ 2>/dev/null || true
           cp -r sarif/semgrep/* sarif/merged/ 2>/dev/null || true
-          ls -la sarif/merged/
+          ls -la sarif/merged/ || true
+          if ! find sarif/merged -name '*.sarif' -print -quit | grep -q .; then
+            echo "no_sarif=true" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Upload merged SARIF
+        if: steps.merge.outputs.no_sarif != 'true'
+        continue-on-error: true
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: sarif/merged

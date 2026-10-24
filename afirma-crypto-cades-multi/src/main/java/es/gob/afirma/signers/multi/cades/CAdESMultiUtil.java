@@ -90,7 +90,7 @@ public final class CAdESMultiUtil {
 	public static void checkLongTermAttributes(final byte[] signedDataBytes) throws SigningLTSException, AOInvalidSignatureFormatException {
 		final CMSSignedData signedData;
 		try {
-			signedData = new CMSSignedData(signedDataBytes);
+			signedData = new CMSSignedData(es.gob.afirma.signers.pkcs7.Asn1LegacyTimeNormalizer.retagMisencodedUtcTime(signedDataBytes));
 		}
 		catch (final CMSException e) {
 			throw new AOInvalidSignatureFormatException(
@@ -152,7 +152,7 @@ public final class CAdESMultiUtil {
 	static SignedData readData(final byte[] signature) throws IOException {
 		final ASN1Sequence dsq;
 		try (
-			final ASN1InputStream is = new ASN1InputStream(signature);
+			final ASN1InputStream is = new ASN1InputStream(es.gob.afirma.signers.pkcs7.Asn1LegacyTimeNormalizer.retagMisencodedUtcTime(signature));
 		) {
 			dsq = (ASN1Sequence) is.readObject();
 		}

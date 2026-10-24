@@ -55,7 +55,7 @@ public final class ObtainContentSignedData {
 
 			final ASN1Sequence dsq;
 			try (
-				final ASN1InputStream is = new ASN1InputStream(data);
+				final ASN1InputStream is = new ASN1InputStream(Asn1LegacyTimeNormalizer.retagMisencodedUtcTime(data));
 			) {
 				dsq  = (ASN1Sequence) is.readObject();
 			}
@@ -104,7 +104,7 @@ public final class ObtainContentSignedData {
 
 		final ASN1Sequence dsq;
 		try (
-			final ASN1InputStream is = new ASN1InputStream(signature);
+			final ASN1InputStream is = new ASN1InputStream(Asn1LegacyTimeNormalizer.retagMisencodedUtcTime(signature));
 		) {
 			dsq  = (ASN1Sequence) is.readObject();
 		}

@@ -658,7 +658,7 @@ public class SignatureFormatDetectorPadesCades implements ISignatureFormatDetect
 		// Obtenemos los datos firmados
 		CMSSignedData signedData = null;
 		try {
-			signedData = new CMSSignedData(contents);
+			signedData = new CMSSignedData(es.gob.afirma.signers.pkcs7.Asn1LegacyTimeNormalizer.retagMisencodedUtcTime(contents));
 			// Comprobamos que la firma tiene al menos un firmante
 			if (signedData.getSignerInfos().getSigners().size() == 0) {
 				throw new Exception("No existen firmantes en el documento"); //$NON-NLS-1$
@@ -777,7 +777,7 @@ public class SignatureFormatDetectorPadesCades implements ISignatureFormatDetect
 	 */
 	public static boolean isASN1Format(final byte[] signature) {
 		try {
-			final CMSSignedData signedData = new CMSSignedData(signature);
+			final CMSSignedData signedData = new CMSSignedData(es.gob.afirma.signers.pkcs7.Asn1LegacyTimeNormalizer.retagMisencodedUtcTime(signature));
 			signedData.getSignedContent().getContentType();
 			if (signedData.getSignedContent() != null
 					&& !CMSObjectIdentifiers.signedData.equals(signedData.getSignedContent().getContentType())) {

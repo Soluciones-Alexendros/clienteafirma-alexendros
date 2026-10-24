@@ -46,7 +46,7 @@ public final class CAdESValidator {
 
     private static Enumeration<?> getCAdESObjects(final byte[] data) throws IOException {
     	try (
-			final ASN1InputStream is = new ASN1InputStream(data);
+			final ASN1InputStream is = new ASN1InputStream(es.gob.afirma.signers.pkcs7.Asn1LegacyTimeNormalizer.retagMisencodedUtcTime(data));
 		) {
     		final ASN1Sequence dsq = (ASN1Sequence) is.readObject();
     		return dsq.getObjects();

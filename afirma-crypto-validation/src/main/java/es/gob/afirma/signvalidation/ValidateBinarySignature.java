@@ -174,10 +174,10 @@ public final class ValidateBinarySignature extends SignValider {
                                                                                  OperatorCreationException {
         final CMSSignedData s;
         if (data == null) {
-        	s = new CMSSignedData(sign);
+        	s = new CMSSignedData(es.gob.afirma.signers.pkcs7.Asn1LegacyTimeNormalizer.retagMisencodedUtcTime(sign));
         }
         else {
-        	s = new CMSSignedData(new CMSProcessableByteArray(data), sign);
+        	s = new CMSSignedData(new CMSProcessableByteArray(data), es.gob.afirma.signers.pkcs7.Asn1LegacyTimeNormalizer.retagMisencodedUtcTime(sign));
         }
         final Store<X509CertificateHolder> store = s.getCertificates();
 
