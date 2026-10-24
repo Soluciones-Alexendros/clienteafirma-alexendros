@@ -157,6 +157,8 @@ jobs:
           cache-dependency-path: pom.xml
 
       # CycloneDX/maven-generate-sbom-action is unpublished; use the Maven plugin.
+      # env=install now includes fork crypto modules (see pom.xml) so Central
+      # SpongyCastle 1.9.1 artifacts are not mixed with BouncyCastle sources.
       - name: Build project and generate CycloneDX SBOM
         run: |
           mvn -B clean install -DskipTests -Denv=install \
