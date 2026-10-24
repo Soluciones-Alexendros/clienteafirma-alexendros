@@ -150,7 +150,7 @@ final class CAdESCounterSigner {
         // Leemos los datos originales (la firma que nos llega)
     	final ASN1Sequence dsq;
     	try (
-			final ASN1InputStream is = new ASN1InputStream(signature);
+			final ASN1InputStream is = new ASN1InputStream(es.gob.afirma.signers.pkcs7.Asn1LegacyTimeNormalizer.retagMisencodedUtcTime(signature));
 		) {
     		dsq = (ASN1Sequence) is.readObject();
     	}

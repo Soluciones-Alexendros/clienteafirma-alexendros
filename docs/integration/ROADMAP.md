@@ -16,7 +16,7 @@
 | Prioridad | Ítem | Estado | Notas |
 |-----------|------|--------|-------|
 | P0 | Alineación del repositorio (contrato, CI mínima) | Hecho | PR #1 |
-| P1-BC | Migración SpongyCastle → BouncyCastle 1.78.1 | Hecho en el fork | En `master` del monorepo (PR #3). PR CTT [#573](https://github.com/ctt-gob-es/clienteafirma/pull/573) cerrada sin merge; seguimiento [#572](https://github.com/ctt-gob-es/clienteafirma/issues/572) |
+| P1-BC | Migración SpongyCastle → BouncyCastle 1.86 | Hecho en el fork | En `master` del monorepo (PR #3 a 1.78.1; bump CVE a 1.86). PR CTT [#573](https://github.com/ctt-gob-es/clienteafirma/pull/573) cerrada sin merge; seguimiento [#572](https://github.com/ctt-gob-es/clienteafirma/issues/572) |
 | P1-TEST | Batería de validación (harness) en módulos cripto | Hecho | 12 tests nuevos; ver [TEST-PORTING-MAP.md](TEST-PORTING-MAP.md) |
 | P1-TLS | Análisis de solape TLS con upstream | Hecho (análisis) | Preferencia opt-in; default sin endurecer. Código en integración (`prefs/strict-ssl`) |
 | P0-SEC | Retirar PFX y contraseña de firma del índice | Hecho en esta rama | `make security-material`. Aviso de revocación redactado y no enviado |
@@ -30,7 +30,7 @@
 
 ## P1-BC — BouncyCastle (hecho en el fork)
 
-**Qué es:** SpongyCastle era una copia antigua de la biblioteca criptográfica BouncyCastle. El fork usa BouncyCastle 1.78.1 moderno (`jdk18on`) para firmar con los mismos formatos.
+**Qué es:** SpongyCastle era una copia antigua de la biblioteca criptográfica BouncyCastle. El fork usa BouncyCastle 1.86 moderno (`jdk18on`) para firmar con los mismos formatos.
 
 **Entregables:** [BC-DIFF-ANALYSIS.md](BC-DIFF-ANALYSIS.md), [BC-NOISE-REPORT.md](BC-NOISE-REPORT.md), [BC-STRATEGY.md](BC-STRATEGY.md) (estrategia B aplicada: diff limpio).
 

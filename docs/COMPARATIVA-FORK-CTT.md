@@ -30,8 +30,8 @@ Si una sede acepta firmas del cliente oficial, el objetivo de este fork es que *
 
 | Área | Oficial CTT (`master`) | Fork comunitario | Notas |
 |------|------------------------|------------------|-------|
-| Biblioteca criptográfica declarada | **SpongyCastle** | **BouncyCastle 1.78.1** (`org.bouncycastle`, `jdk18on`) en `dependencyManagement` | PR upstream [#573](https://github.com/ctt-gob-es/clienteafirma/pull/573) cerrada sin merge; seguimiento [#572](https://github.com/ctt-gob-es/clienteafirma/issues/572) |
-| SpongyCastle en el JAR de escritorio | Sí | **También**: `mvn -Denv=install` sombrea `com.madgag.spongycastle` 1.56.0.0 junto a BouncyCastle 1.78.1 | No presentar el JAR como libre de SpongyCastle |
+| Biblioteca criptográfica declarada | **SpongyCastle** | **BouncyCastle 1.86** (`org.bouncycastle`, `jdk18on`) en `dependencyManagement` | PR upstream [#573](https://github.com/ctt-gob-es/clienteafirma/pull/573) cerrada sin merge; seguimiento [#572](https://github.com/ctt-gob-es/clienteafirma/issues/572). Pin elevado desde 1.78.1 para CVE Dependabot |
+| SpongyCastle en el JAR de escritorio | Sí | **También**: `mvn -Denv=install` sombrea `com.madgag.spongycastle` 1.56.0.0 junto a BouncyCastle 1.86 | No presentar el JAR como libre de SpongyCastle |
 | Material de firma de instalador | PFX y contraseña versionados | Fuera de `HEAD`. `make security-material` falla si vuelven | Certificado de laboratorio UJI, serie `4AFA8450`, caducado en 2019. Nota: [SEC-2026-001-material.md](security/SEC-2026-001-material.md) |
 | Pruebas de firma (F2) | No hay batería pública equivalente en el repo | Scripts + vectores en `vectors/` y `scripts/f2-regression.sh` | Comprueba la generación e integridad local de los formatos F2; no demuestra por sí sola paridad bit a bit con el cliente oficial 1.9.1 |
 | CI abierta | Limitada / no equivale al programa comunitario | Jobs `quality`, `test`, `community`, `build`, `smoke`, `build-baseline` | Fachada local: `make validate` |
