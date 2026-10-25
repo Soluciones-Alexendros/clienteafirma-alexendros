@@ -49,7 +49,6 @@ import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.transform.OutputKeys;
 import javax.xml.transform.Transformer;
 import javax.xml.transform.TransformerException;
-import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 
@@ -60,6 +59,7 @@ import org.w3c.dom.Element;
 import es.gob.afirma.core.AOCancelledOperationException;
 import es.gob.afirma.core.misc.AOUtil;
 import es.gob.afirma.core.misc.Platform;
+import es.gob.afirma.core.misc.SecureXmlTransformer;
 import es.gob.afirma.core.ui.AOUIFactory;
 import es.gob.afirma.standalone.plugins.UIFactory;
 
@@ -572,8 +572,7 @@ public final class CheckHashDirDialog extends JDialog implements KeyListener {
 
 		// Componemos el XML
 		final StringWriter sw = new StringWriter();
-		final TransformerFactory tf = TransformerFactory.newInstance();
-		final Transformer transformer = tf.newTransformer();
+		final Transformer transformer = SecureXmlTransformer.getSecureTransformer();
 		transformer.setOutputProperty(OutputKeys.OMIT_XML_DECLARATION, "no"); //$NON-NLS-1$
 		transformer.setOutputProperty(OutputKeys.METHOD, "xml"); //$NON-NLS-1$
 		transformer.setOutputProperty(OutputKeys.INDENT, "yes"); //$NON-NLS-1$
