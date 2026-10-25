@@ -50,13 +50,16 @@ jobs:
 
       - name: Build all modules
         run: |
-          export SOURCE_DATE_EPOCH="${SOURCE_DATE_EPOCH:-$(git log -1 --format=%ct)}"
+          if [ -z "${SOURCE_DATE_EPOCH:-}" ]; then
+            SOURCE_DATE_EPOCH="$(git log -1 --format=%ct)"
+          fi
+          export SOURCE_DATE_EPOCH
           echo "SOURCE_DATE_EPOCH=$SOURCE_DATE_EPOCH" >> "$GITHUB_ENV"
-          SOURCE_DATE_EPOCH="$SOURCE_DATE_EPOCH" mvn -B clean install -DskipTests -Dproject.build.outputTimestamp="$SOURCE_DATE_EPOCH"
+          mvn -B clean install -DskipTests -Dproject.build.outputTimestamp="$SOURCE_DATE_EPOCH"
 
       - name: Build env-install profile (JAR + services)
         run: |
-          SOURCE_DATE_EPOCH="$SOURCE_DATE_EPOCH" mvn -B clean install -DskipTests -Denv=install -Dproject.build.outputTimestamp="$SOURCE_DATE_EPOCH" -pl '!afirma-server-triphase-signer,!afirma-signature-retriever,!afirma-signature-storage'
+          mvn -B clean install -DskipTests -Denv=install -Dproject.build.outputTimestamp="$SOURCE_DATE_EPOCH" -pl '!afirma-server-triphase-signer,!afirma-signature-retriever,!afirma-signature-storage'
 
       - name: Run F2 regression vectors
         run: |
@@ -69,13 +72,14 @@ jobs:
           mkdir -p "$WORK"
           REPO="$GITHUB_WORKSPACE"
           # Pin wall-clock independent timestamps for both clean builds (SEC-2026-010).
-          export SOURCE_DATE_EPOCH="$(git log -1 --format=%ct)"
+          SOURCE_DATE_EPOCH="$(git log -1 --format=%ct)"
+          export SOURCE_DATE_EPOCH
           MVN_REPRO=(-Dproject.build.outputTimestamp="${SOURCE_DATE_EPOCH}")
 
           git worktree add "$WORK/worktree1" HEAD
           (
             cd "$WORK/worktree1"
-            SOURCE_DATE_EPOCH="$SOURCE_DATE_EPOCH" mvn -B clean install -DskipTests -Denv=install "${MVN_REPRO[@]}" -pl afirma-simple -am
+            mvn -B clean install -DskipTests -Denv=install "${MVN_REPRO[@]}" -pl afirma-simple -am
             cp afirma-simple/target/autofirma.jar "$WORK/build1.jar"
             sha256sum "$WORK/build1.jar" > "$WORK/build1.sha256"
           )
@@ -83,7 +87,7 @@ jobs:
           git worktree add "$WORK/worktree2" HEAD
           (
             cd "$WORK/worktree2"
-            SOURCE_DATE_EPOCH="$SOURCE_DATE_EPOCH" mvn -B clean install -DskipTests -Denv=install "${MVN_REPRO[@]}" -pl afirma-simple -am
+            mvn -B clean install -DskipTests -Denv=install "${MVN_REPRO[@]}" -pl afirma-simple -am
             cp afirma-simple/target/autofirma.jar "$WORK/build2.jar"
             sha256sum "$WORK/build2.jar" > "$WORK/build2.sha256"
           )
