@@ -4,6 +4,16 @@ on:
   push:
     tags:
       - 'v*'
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: 'Create GitHub Release (false = dry-run artifacts only)'
+        required: false
+        default: 'false'
+        type: choice
+        options:
+          - 'false'
+          - 'true'
 
 permissions:
   contents: write
@@ -16,6 +26,9 @@ jobs:
     name: Create GitHub Release
     runs-on: ubuntu-latest
     timeout-minutes: 90
+    env:
+      RELEASE_NAME: ${{ github.event_name == 'workflow_dispatch' && format('dry-run-{0}', github.sha) || github.ref_name }}
+      DO_PUBLISH: ${{ github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.publish == 'true') }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -38,56 +51,52 @@ jobs:
       - name: Build all modules
         run: |
           mvn -B clean install -DskipTests
-      
+
       - name: Build env-install profile (JAR + services)
         run: |
           mvn -B clean install -DskipTests -Denv=install -pl '!afirma-server-triphase-signer,!afirma-signature-retriever,!afirma-signature-storage'
-      
+
       - name: Run F2 regression vectors
         run: |
           bash scripts/f2-regression.sh
 
       - name: "SEC-2026-010: Verify reproducible JAR build"
         run: |
-          mkdir -p verify-reproducible
-          cd verify-reproducible
-          
-          # First build
-          git worktree add ../worktree1
-          cd ../worktree1
-          mvn -B clean install -DskipTests -Denv=install -pl afirma-simple -am
-          cp afirma-simple/target/autofirma.jar ../build1.jar
-          sha256sum ../build1.jar > ../build1.sha256
-          
-          # Second build in separate worktree
-          cd ..
-          git worktree add ../worktree2
-          cd ../worktree2
-          mvn -B clean install -DskipTests -Denv=install -pl afirma-simple -am
-          cp afirma-simple/target/autofirma.jar ../build2.jar
-          sha256sum ../build2.jar > ../build2.sha256
-          
-          # Compare hashes
-          cd ..
-          sha256_1=$(cut -d' ' -f1 build1.sha256)
-          sha256_2=$(cut -d' ' -f1 build2.sha256)
-          
+          set -euo pipefail
+          WORK="$RUNNER_TEMP/reproducible-verify"
+          mkdir -p "$WORK"
+          REPO="$GITHUB_WORKSPACE"
+
+          git worktree add "$WORK/worktree1" HEAD
+          (
+            cd "$WORK/worktree1"
+            mvn -B clean install -DskipTests -Denv=install -pl afirma-simple -am
+            cp afirma-simple/target/autofirma.jar "$WORK/build1.jar"
+            sha256sum "$WORK/build1.jar" > "$WORK/build1.sha256"
+          )
+
+          git worktree add "$WORK/worktree2" HEAD
+          (
+            cd "$WORK/worktree2"
+            mvn -B clean install -DskipTests -Denv=install -pl afirma-simple -am
+            cp afirma-simple/target/autofirma.jar "$WORK/build2.jar"
+            sha256sum "$WORK/build2.jar" > "$WORK/build2.sha256"
+          )
+
+          sha256_1=$(cut -d' ' -f1 "$WORK/build1.sha256")
+          sha256_2=$(cut -d' ' -f1 "$WORK/build2.sha256")
           echo "Build 1 SHA256: $sha256_1"
           echo "Build 2 SHA256: $sha256_2"
-          
-          if [ "$sha256_1" = "$sha256_2" ]; then
-            echo "✓ Reproducible build verified: Both builds produced identical SHA-256"
-            echo "SHA256: $sha256_1" > reproducible-build.sha256
-          else
-            echo "✗ Reproducible build FAILED: Hashes differ!"
-            echo "Build 1: $sha256_1"
-            echo "Build 2: $sha256_2"
+          if [ "$sha256_1" != "$sha256_2" ]; then
+            echo "Reproducible build FAILED: Hashes differ!"
             exit 1
           fi
-          
-          # Cleanup worktrees
-          git worktree remove ../worktree1 --force
-          git worktree remove ../worktree2 --force
+          echo "Reproducible build verified"
+          mkdir -p "$REPO/verify-reproducible"
+          echo "SHA256: $sha256_1" > "$REPO/verify-reproducible/reproducible-build.sha256"
+
+          git worktree remove "$WORK/worktree1" --force
+          git worktree remove "$WORK/worktree2" --force
 
       - name: Import GPG key
         env:
@@ -101,26 +110,29 @@ jobs:
           fi
 
       - name: Install appimagetool and FUSE
+        continue-on-error: true
         run: |
           wget -q https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage -O /usr/local/bin/appimagetool
           chmod +x /usr/local/bin/appimagetool
           sudo apt-get update && sudo apt-get install -y libfuse2
-      
+
       - name: Package Linux artifacts (DEB, RPM, AppImage)
+        continue-on-error: true
         run: |
           bash scripts/f6-package-linux.sh
           ARCH=x86_64 bash scripts/f6-appimage.sh
 
       - name: Collect artifacts
         run: |
+          set -euo pipefail
           mkdir -p release-artifacts
-          cp afirma-simple/target/autofirma.jar release-artifacts/autofirma-${{ github.ref_name }}.jar 2>/dev/null || true
+          test -f afirma-simple/target/autofirma.jar
+          cp afirma-simple/target/autofirma.jar "release-artifacts/autofirma-${RELEASE_NAME}.jar"
           find packaging -name 'autofirma-2026_*.deb' -exec cp {} release-artifacts/ \; 2>/dev/null || true
           find packaging/stage-rpm -name '*.rpm' -exec cp {} release-artifacts/ \; 2>/dev/null || true
           find . -maxdepth 1 -name '*.AppImage' -exec cp {} release-artifacts/ \; 2>/dev/null || true
           find packaging/flatpak -name '*.flatpak' -exec cp {} release-artifacts/ \; 2>/dev/null || true
-          # Copy reproducible build verification
-          cp verify-reproducible/reproducible-build.sha256 release-artifacts/reproducible-build.sha256 2>/dev/null || true
+          cp verify-reproducible/reproducible-build.sha256 release-artifacts/reproducible-build.sha256
 
       - name: Generate SHA256SUMS
         run: |
@@ -155,14 +167,26 @@ jobs:
 
       - name: Generate SBOM with CycloneDX
         run: |
-          mvn -B cyclonedx:makeBom -pl afirma-simple
-          cp afirma-simple/target/bom.json release-artifacts/bom.json 2>/dev/null || true
+          set -euo pipefail
+          mvn -B org.cyclonedx:cyclonedx-maven-plugin:2.7.6:makeBom -pl afirma-simple
+          test -f afirma-simple/target/bom.json
+          cp afirma-simple/target/bom.json release-artifacts/bom.json
+
+      - name: Upload release artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-artifacts
+          path: release-artifacts/
+          if-no-files-found: error
+          retention-days: 14
 
       - name: Create Release Notes
+        if: env.DO_PUBLISH == 'true'
         run: |
           printf '%s\n' "## Autofirma ${{ github.ref_name }}" "" "### Qué incluye" "- JAR autoejecutable (\`autofirma.jar\`)" "- Paquete DEB (Debian/Ubuntu)" "- Paquete RPM (Fedora/RHEL/openSUSE)" "- AppImage (universal Linux)" "- Flatpak (cuando esté disponible)" "- Checksums SHA256 para cada artefacto" "- SBOM (CycloneDX JSON)" "- Firmas GPG (\`.asc\`) y checksums SHA256" "" "### Verificación" "\`\`\`bash" "# Verificar firma GPG" "gpg --verify autofirma-${{ github.ref_name }}.jar.asc autofirma-${{ github.ref_name }}.jar" "" "# Verificar checksum" "sha256sum -c SHA256SUMS" "\`\`\`" "" "### Cambios" "Ver [CHANGELOG.md](CHANGELOG.md) para detalles." "" "### Licencia" "GPL-2.0+ / EUPL-1.1" > release-notes.md
 
       - name: Create GitHub Release
+        if: env.DO_PUBLISH == 'true'
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}
@@ -170,21 +194,22 @@ jobs:
           body_path: release-notes.md
           files: |
             release-artifacts/*
-            release-artifacts/*.asc
-            release-artifacts/SHA256SUMS
-            release-artifacts/SHA256SUMS.asc
-            release-artifacts/bom.json
-            release-artifacts/reproducible-build.sha256
           draft: false
           prerelease: ${{ contains(github.ref_name, '-rc') || contains(github.ref_name, '-beta') || contains(github.ref_name, '-alpha') }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Attest SBOM
-        if: github.repository == 'Soluciones-Alexendros/clienteafirma-alexendros'
+        if: env.DO_PUBLISH == 'true' && github.repository == 'Soluciones-Alexendros/clienteafirma-alexendros'
         uses: actions/attest-build-provenance@v2
         with:
           subject-path: release-artifacts/bom.json
+
+      - name: Dry-run summary
+        if: env.DO_PUBLISH != 'true'
+        run: |
+          echo "Dry-run complete: artifacts uploaded as release-artifacts (no GitHub Release)."
+          ls -la release-artifacts
 
   validate:
     name: Validate Release Artifacts
@@ -195,8 +220,8 @@ jobs:
       - name: Download release artifacts
         uses: actions/download-artifact@v4
         with:
-          pattern: release-*
-          merge-multiple: true
+          name: release-artifacts
+          path: .
 
       - name: Verify GPG signatures
         env:
@@ -205,7 +230,7 @@ jobs:
           if [ -n "$GPG_PRIVATE_KEY" ]; then
             find . -maxdepth 1 -type f -name '*.asc' | while read -r f; do
               if [ -f "$f" ]; then
-                gpg --verify "$f" "${f%.asc}" && echo "✓ $f verified" || exit 1
+                gpg --verify "$f" "${f%.asc}" && echo "OK $f verified" || exit 1
               fi
             done
           else
@@ -216,13 +241,11 @@ jobs:
         run: |
           sha256sum -c SHA256SUMS
 
-      - name: Verify reproducible build
+      - name: Verify SBOM and reproducible build
         run: |
-          if [ -f reproducible-build.sha256 ]; then
-            echo "✓ Reproducible build verified"
-          else
-            echo "⚠ Reproducible build verification file not found"
-          fi
+          test -f bom.json
+          test -f reproducible-build.sha256
+          echo "SBOM and reproducible-build.sha256 present"
 
   notify:
     name: Notify Completion
@@ -232,5 +255,9 @@ jobs:
     steps:
       - name: Notify completion
         run: |
-          echo "Release ${{ github.ref_name }} published successfully"
-          echo "URL: https://github.com/${{ github.repository }}/releases/tag/${{ github.ref_name }}"
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.publish }}" != "true" ]; then
+            echo "Dry-run Release completed (no publish)"
+          else
+            echo "Release ${{ github.ref_name }} published successfully"
+            echo "URL: https://github.com/${{ github.repository }}/releases/tag/${{ github.ref_name }}"
+          fi
