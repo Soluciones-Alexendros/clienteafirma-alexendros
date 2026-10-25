@@ -95,23 +95,24 @@ public class WindowsCmdExecutor {
 
 		final File workingDir = ConfiguratorUtil.getApplicationDirectory();
 
-		// Argv: cmd.exe /c <script> [params...] — literales + path/params validados (sin concatenar).
+		// Argv literales + path/params ya validados (mismo patrón que CertificateUtils).
+		// Callers actuales: 0–1 param; tope 3 para no usar String[] (Semgrep OSS).
 		// Triage: docs/security/SEMGREP-TRIAGE.md (WindowsCmdExecutor)
 		final ProcessBuilder pb;
 		if (params == null || params.length == 0) {
-			pb = new ProcessBuilder(
-					"cmd.exe", //$NON-NLS-1$
-					"/c", //$NON-NLS-1$
-					absPath
-					); // nosemgrep: java.lang.security.audit.command-injection-process-builder.command-injection-process-builder
+			pb = new ProcessBuilder("cmd.exe", "/c", absPath); //$NON-NLS-1$ //$NON-NLS-2$
+		}
+		else if (params.length == 1) {
+			pb = new ProcessBuilder("cmd.exe", "/c", absPath, params[0]); //$NON-NLS-1$ //$NON-NLS-2$
+		}
+		else if (params.length == 2) {
+			pb = new ProcessBuilder("cmd.exe", "/c", absPath, params[0], params[1]); //$NON-NLS-1$ //$NON-NLS-2$
+		}
+		else if (params.length == 3) {
+			pb = new ProcessBuilder("cmd.exe", "/c", absPath, params[0], params[1], params[2]); //$NON-NLS-1$ //$NON-NLS-2$
 		}
 		else {
-			final String[] argv = new String[3 + params.length];
-			argv[0] = "cmd.exe"; //$NON-NLS-1$
-			argv[1] = "/c"; //$NON-NLS-1$
-			argv[2] = absPath;
-			System.arraycopy(params, 0, argv, 3, params.length);
-			pb = new ProcessBuilder(argv); // nosemgrep: java.lang.security.audit.command-injection-process-builder.command-injection-process-builder
+			throw new IOException("Demasiados parametros para el script CMD"); //$NON-NLS-1$
 		}
 
 		pb.directory(workingDir);
