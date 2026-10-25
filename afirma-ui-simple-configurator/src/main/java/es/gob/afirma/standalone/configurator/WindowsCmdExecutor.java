@@ -97,8 +97,9 @@ public class WindowsCmdExecutor {
 
 		final File workingDir = ConfiguratorUtil.getApplicationDirectory();
 
+		// Argv fijo: cmd.exe /c <script> [params...] (sin shell string concatenada).
+		// Path/params ya validados arriba. Triage: docs/security/SEMGREP-TRIAGE.md
 		final ArrayList<String> processParams = new ArrayList<>();
-		// cmd.exe /c con argv en lista (sin concatenar la linea de comando)
 		processParams.add("cmd.exe"); //$NON-NLS-1$
 		processParams.add("/c"); //$NON-NLS-1$
 		processParams.add(absPath);
@@ -106,9 +107,7 @@ public class WindowsCmdExecutor {
 			Collections.addAll(processParams, params);
 		}
 
-		// nosemgrep: java.lang.security.audit.command-injection-process-builder.command-injection-process-builder
-		// Triage SEMGREP-TRIAGE.md: argv list + path/params validados; necesario para .cmd en Windows
-		final ProcessBuilder pb = new ProcessBuilder(processParams);
+		final ProcessBuilder pb = new ProcessBuilder(processParams); // nosemgrep: java.lang.security.audit.command-injection-process-builder.command-injection-process-builder
 
 		pb.directory(workingDir);
 		pb.redirectErrorStream(true);
