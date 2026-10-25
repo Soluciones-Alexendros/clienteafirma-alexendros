@@ -205,7 +205,8 @@ jobs:
       - name: Generate SBOM with CycloneDX
         run: |
           set -euo pipefail
-          mvn -B org.cyclonedx:cyclonedx-maven-plugin:2.7.6:makeBom -pl afirma-simple
+          # env-dev (default) omits afirma-simple; env-install puts it in the reactor.
+          mvn -B org.cyclonedx:cyclonedx-maven-plugin:2.7.6:makeBom -Denv=install -pl afirma-simple
           test -f afirma-simple/target/bom.json
           cp afirma-simple/target/bom.json release-artifacts/bom.json
 
