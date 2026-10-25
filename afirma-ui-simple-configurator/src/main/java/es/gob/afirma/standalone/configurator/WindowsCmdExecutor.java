@@ -7,8 +7,6 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 
@@ -97,17 +95,24 @@ public class WindowsCmdExecutor {
 
 		final File workingDir = ConfiguratorUtil.getApplicationDirectory();
 
-		// Argv fijo: cmd.exe /c <script> [params...] (sin shell string concatenada).
-		// Path/params ya validados arriba. Triage: docs/security/SEMGREP-TRIAGE.md
-		final ArrayList<String> processParams = new ArrayList<>();
-		processParams.add("cmd.exe"); //$NON-NLS-1$
-		processParams.add("/c"); //$NON-NLS-1$
-		processParams.add(absPath);
-		if (params != null) {
-			Collections.addAll(processParams, params);
+		// Argv: cmd.exe /c <script> [params...] — literales + path/params validados (sin concatenar).
+		// Triage: docs/security/SEMGREP-TRIAGE.md (WindowsCmdExecutor)
+		final ProcessBuilder pb;
+		if (params == null || params.length == 0) {
+			pb = new ProcessBuilder(
+					"cmd.exe", //$NON-NLS-1$
+					"/c", //$NON-NLS-1$
+					absPath
+					); // nosemgrep: java.lang.security.audit.command-injection-process-builder.command-injection-process-builder
 		}
-
-		final ProcessBuilder pb = new ProcessBuilder(processParams); // nosemgrep: java.lang.security.audit.command-injection-process-builder.command-injection-process-builder
+		else {
+			final String[] argv = new String[3 + params.length];
+			argv[0] = "cmd.exe"; //$NON-NLS-1$
+			argv[1] = "/c"; //$NON-NLS-1$
+			argv[2] = absPath;
+			System.arraycopy(params, 0, argv, 3, params.length);
+			pb = new ProcessBuilder(argv); // nosemgrep: java.lang.security.audit.command-injection-process-builder.command-injection-process-builder
+		}
 
 		pb.directory(workingDir);
 		pb.redirectErrorStream(true);
