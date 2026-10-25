@@ -71,8 +71,20 @@ public class SecureXmlBuilder {
 				throw new IllegalStateException("No se pudo prohibir DOCTYPE en DocumentBuilderFactory", e);
 			}
 
+			// Desactivamos entidades externas también en DOM (además de SAX)
+			try {
+				SECURE_BUILDER_FACTORY.setFeature("http://xml.org/sax/features/external-general-entities", false); //$NON-NLS-1$
+				SECURE_BUILDER_FACTORY.setFeature("http://xml.org/sax/features/external-parameter-entities", false); //$NON-NLS-1$
+			}
+			catch (final Exception e) {
+				Logger.getLogger("es.gob.afirma").log(Level.SEVERE, "No se han podido desactivar entidades externas en DocumentBuilderFactory: " + e); //$NON-NLS-1$ //$NON-NLS-2$
+				throw new IllegalStateException("No se pudieron desactivar entidades externas en DocumentBuilderFactory", e);
+			}
+
 			SECURE_BUILDER_FACTORY.setValidating(false);
 			SECURE_BUILDER_FACTORY.setNamespaceAware(true);
+			SECURE_BUILDER_FACTORY.setXIncludeAware(false);
+			SECURE_BUILDER_FACTORY.setExpandEntityReferences(false);
 		}
 		return SECURE_BUILDER_FACTORY.newDocumentBuilder();
 	}
