@@ -171,10 +171,24 @@ jobs:
           find packaging/flatpak -name '*.flatpak' -exec cp {} release-artifacts/ \; 2>/dev/null || true
           cp verify-reproducible/reproducible-build.sha256 release-artifacts/reproducible-build.sha256
 
+      - name: Generate SBOM with CycloneDX
+        run: |
+          set -euo pipefail
+          # env-dev (default) omits afirma-simple; env-install puts it in the reactor.
+          mvn -B org.cyclonedx:cyclonedx-maven-plugin:2.7.6:makeBom -Denv=install -pl afirma-simple
+          test -f afirma-simple/target/bom.json
+          cp afirma-simple/target/bom.json release-artifacts/bom.json
+
       - name: Generate SHA256SUMS
         run: |
+          set -euo pipefail
           cd release-artifacts
-          find . -maxdepth 1 -type f -exec sha256sum {} + > SHA256SUMS
+          # Write outside the dir: shell creates the redirect target before find runs.
+          OUT="$RUNNER_TEMP/SHA256SUMS"
+          find . -maxdepth 1 -type f ! -name 'SHA256SUMS' ! -name 'SHA256SUMS.asc' ! -name '*.asc' -print0 \
+            | sort -z \
+            | xargs -0 sha256sum > "$OUT"
+          mv "$OUT" SHA256SUMS
 
       - name: Sign artifacts with GPG
         env:
@@ -182,7 +196,7 @@ jobs:
         run: |
           if [ -n "$GPG_PRIVATE_KEY" ]; then
             cd release-artifacts
-            find . -maxdepth 1 -type f \( -name '*.jar' -o -name '*.deb' -o -name '*.rpm' -o -name '*.AppImage' -o -name '*.flatpak' -o -name '*.sha256' \) | while read -r f; do
+            find . -maxdepth 1 -type f \( -name '*.jar' -o -name '*.deb' -o -name '*.rpm' -o -name '*.AppImage' -o -name '*.flatpak' -o -name '*.sha256' -o -name 'bom.json' \) | while read -r f; do
               if [ -f "$f" ]; then
                 gpg --armor --detach-sign --output "$f.asc" "$f"
               fi
@@ -201,14 +215,6 @@ jobs:
           else
             echo "GPG_PRIVATE_KEY not set, skipping SHA256SUMS signing"
           fi
-
-      - name: Generate SBOM with CycloneDX
-        run: |
-          set -euo pipefail
-          # env-dev (default) omits afirma-simple; env-install puts it in the reactor.
-          mvn -B org.cyclonedx:cyclonedx-maven-plugin:2.7.6:makeBom -Denv=install -pl afirma-simple
-          test -f afirma-simple/target/bom.json
-          cp afirma-simple/target/bom.json release-artifacts/bom.json
 
       - name: Upload release artifacts
         uses: actions/upload-artifact@v4
