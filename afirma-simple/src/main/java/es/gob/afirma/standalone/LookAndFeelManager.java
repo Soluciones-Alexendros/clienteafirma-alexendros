@@ -221,21 +221,49 @@ public final class LookAndFeelManager {
 	 * @return {@code true} si encontramos configurado un tema oscuro de GNOME, {@code false} en caso contrario.
 	 */
 	private static boolean isGnomeDarkMode() {
-        return
-             (queryResultContains("echo $XDG_CURRENT_DESKTOP", "gnome") || //$NON-NLS-1$ //$NON-NLS-2$
-             queryResultContains("echo $XDG_DATA_DIRS | grep -Eo 'gnome'", "gnome") || //$NON-NLS-1$ //$NON-NLS-2$
-             queryResultContains("ps -e | grep -E -i \"gnome\"", "gnome")) //$NON-NLS-1$ //$NON-NLS-2$
-             	&& queryResultContains("gsettings get org.gnome.desktop.interface gtk-theme", "dark") //$NON-NLS-1$ //$NON-NLS-2$
-        ;
-    }
-
-	private static boolean queryResultContains(final String cmd, final String subResult) {
-		return query(cmd).toLowerCase().contains(subResult);
+		return isGnomeDesktop()
+				&& queryArgvContains(
+						new String[] {
+								"gsettings", //$NON-NLS-1$
+								"get", //$NON-NLS-1$
+								"org.gnome.desktop.interface", //$NON-NLS-1$
+								"gtk-theme" //$NON-NLS-1$
+						},
+						"dark"); //$NON-NLS-1$
 	}
 
-	private static String query(final String cmd) {
+	private static boolean isGnomeDesktop() {
+		final String desktop = System.getenv("XDG_CURRENT_DESKTOP"); //$NON-NLS-1$
+		if (desktop != null && desktop.toLowerCase().contains("gnome")) { //$NON-NLS-1$
+			return true;
+		}
+		final String dataDirs = System.getenv("XDG_DATA_DIRS"); //$NON-NLS-1$
+		if (dataDirs != null && dataDirs.toLowerCase().contains("gnome")) { //$NON-NLS-1$
+			return true;
+		}
+		return queryArgvContains(new String[] { "ps", "-e" }, "gnome"); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
+	}
+
+	private static boolean queryArgvContains(final String[] argv, final String subResult) {
+		return queryArgv(argv).toLowerCase().contains(subResult);
+	}
+
+	/**
+	 * Ejecuta un comando en lista (sin shell) y captura stdout.
+	 * @param argv Comando y argumentos; el binario debe estar en lista blanca.
+	 * @return Salida del proceso o cadena vac&iacute;a.
+	 */
+	private static String queryArgv(final String[] argv) {
+		if (argv == null || argv.length == 0) {
+			return ""; //$NON-NLS-1$
+		}
+		final String binary = argv[0];
+		if (!"gsettings".equals(binary) && !"ps".equals(binary)) { //$NON-NLS-1$ //$NON-NLS-2$
+			LOGGER.warning("Comando no permitido para deteccion de tema: " + binary); //$NON-NLS-1$
+			return ""; //$NON-NLS-1$
+		}
 		try {
-			final Process process = Runtime.getRuntime().exec(cmd);
+			final Process process = new ProcessBuilder(argv).start();
 			final StringBuilder stringBuilder = new StringBuilder();
 			try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
 				String actualReadLine;
