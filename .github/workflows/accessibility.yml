@@ -87,7 +87,8 @@ jobs:
 
       - name: Build JAR (for accessibility testing)
         run: |
-          mvn -B clean install -DskipTests -Denv=install -pl afirma-simple -am
+          # ArtifactId is afirma-ui-simpleafirma; path selector keeps -am deps correct.
+          mvn -B clean install -DskipTests -Denv=install -pl :afirma-ui-simpleafirma -am
 
       - name: Run full Orca accessibility tests (experimental)
         continue-on-error: true

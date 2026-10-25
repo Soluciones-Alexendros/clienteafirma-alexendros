@@ -105,7 +105,7 @@ final class CoSigner {
         // LEEMOS EL FICHERO QUE NOS INTRODUCEN
     	final ASN1Sequence dsq;
     	try (
-			final ASN1InputStream is = new ASN1InputStream(sign);
+			final ASN1InputStream is = new ASN1InputStream(es.gob.afirma.signers.pkcs7.Asn1LegacyTimeNormalizer.retagMisencodedUtcTime(sign));
 		) {
     		dsq = (ASN1Sequence) is.readObject();
     	}
@@ -264,7 +264,7 @@ final class CoSigner {
         // LEEMOS EL FICHERO QUE NOS INTRODUCEN
         final ASN1Sequence dsq;
         try (
-    		final ASN1InputStream is = new ASN1InputStream(sign);
+    		final ASN1InputStream is = new ASN1InputStream(es.gob.afirma.signers.pkcs7.Asn1LegacyTimeNormalizer.retagMisencodedUtcTime(sign));
 		) {
         	dsq = (ASN1Sequence) is.readObject();
         }

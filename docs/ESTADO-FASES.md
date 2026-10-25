@@ -18,7 +18,7 @@
 | F1 Línea base 1.9.1 | Hecho | `docs/BASELINE.txt`, `docs/build-f1.log` |
 | F2 Vectores | Hecho | `scripts/f2-regression.sh`, `vectors/` |
 | F3 Cadena suministro | Hecho | `.github/workflows/` (SHA pins), Renovate, actionlint |
-| F4 Inventario cripto | Hecho en el fork | `docs/F4-INVENTARIO-CRIPTO.md` + BC 1.78.1 en `master` (PR #3); reintegración CTT pendiente (#572) |
+| F4 Inventario cripto | Hecho en el fork | `docs/F4-INVENTARIO-CRIPTO.md` + BC 1.86 en `master` (migración PR #3 a 1.78.1; bump CVE a 1.86); reintegración CTT pendiente (#572) |
 | F5 JDK 21 runtime | Hecho | `docs/F5-JDK21.md` |
 | F6 Paquetes Linux | Hecho | `packaging/*.deb`, portal de prueba |
 | F7 Accesibilidad | En curso | `docs/F7-ACCESIBILIDAD.md` (nombres accesibles en integración; sesión Orca pendiente) |

@@ -40,7 +40,7 @@ Los números de esta tabla salen del POM de este árbol (`pom.xml`, versión `1.
 | Protocolo `afirma://` | Sí | Sí, el mismo |
 | Formatos que debe generar | CAdES, XAdES, PAdES, FacturaE, cofirma, contrafirma | Los mismos; la puerta local es `scripts/f2-regression.sh` |
 | Algoritmo de firma por defecto en código | El del upstream 1.9.1 | `SHA512withRSA` (`AOSignConstants.DEFAULT_SIGN_ALGO`) |
-| BouncyCastle declarado | SpongyCastle en el upstream de esta línea | `org.bouncycastle` **1.78.1** (`bcprov` / `bcpkix` / `bcutil`, `jdk18on`) |
+| BouncyCastle declarado | SpongyCastle en el upstream de esta línea | `org.bouncycastle` **1.86** (`bcprov` / `bcpkix` / `bcutil`, `jdk18on`) |
 | SpongyCastle dentro del JAR sombreado | Presente en el upstream | Sigue entrando en el JAR de `mvn -Denv=install` como transitiva `com.madgag.spongycastle` **1.56.0.0** (lo arrastra iText empaquetado). No está eliminado del artefacto |
 | Clave de firma de instalador en Git | PFX y contraseña en el árbol upstream | Retirados de `HEAD`. Firma de instalador solo con `AFIRMA_SIGN_PFX` y `AFIRMA_SIGN_PASS` fuera del repo. Gate: `make security-material` |
 | Almacenes de test | En `src/test/resources` | Los mismos fixtures, con SHA-256 en `scripts/ci/crypto-material-allowlist.txt` |

@@ -84,9 +84,11 @@ public final class ReadNodesTree {
     public AOTreeModel readNodesTree(final byte[] data, final boolean asSimpleSignInfo) throws IOException {
 
         // LEEMOS EL FICHERO QUE NOS INTRODUCEN
+    	// BC 1.85+ rejects GeneralizedTime payloads wrongly tagged as UTCTime.
+    	final byte[] asn1Data = Asn1LegacyTimeNormalizer.retagMisencodedUtcTime(data);
     	final ASN1Sequence dsq;
     	try (
-			final ASN1InputStream is = new ASN1InputStream(data);
+			final ASN1InputStream is = new ASN1InputStream(asn1Data);
 		) {
     		dsq = (ASN1Sequence) is.readObject();
     	}
