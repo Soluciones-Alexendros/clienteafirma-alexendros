@@ -117,6 +117,8 @@ jobs:
 
   dependency-review:
     name: Dependency Review
+    # SEC-2026-007: delta review needs PR base/head refs (fails on push to master).
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     continue-on-error: true

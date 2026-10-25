@@ -160,6 +160,10 @@
 					<groupId>org.apache.maven.plugins</groupId>
 					<artifactId>maven-jar-plugin</artifactId>
 					<version>3.3.0</version>
+					<configuration>
+						<!-- Reproducible JARs when -Dproject.build.outputTimestamp / SOURCE_DATE_EPOCH is set -->
+						<outputTimestamp>${project.build.outputTimestamp}</outputTimestamp>
+					</configuration>
 				</plugin>
 				<plugin>
 					<groupId>org.cyclonedx</groupId>
