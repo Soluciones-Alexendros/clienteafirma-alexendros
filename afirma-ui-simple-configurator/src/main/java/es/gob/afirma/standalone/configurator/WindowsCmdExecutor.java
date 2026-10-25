@@ -70,18 +70,45 @@ public class WindowsCmdExecutor {
 	public static void executePathCmd(final Path cmdPath, final long seconds, final String... params)
 			throws IOException, InterruptedException, IllegalThreadStateException {
 
+		if (cmdPath == null) {
+			throw new IOException("Ruta de script nula"); //$NON-NLS-1$
+		}
+
+		final Path absCmd = cmdPath.toAbsolutePath().normalize();
+		final String fileName = absCmd.getFileName() != null
+				? absCmd.getFileName().toString().toLowerCase()
+				: ""; //$NON-NLS-1$
+		if (!fileName.endsWith(".cmd") && !fileName.endsWith(".bat")) { //$NON-NLS-1$ //$NON-NLS-2$
+			throw new IOException("Solo se permiten scripts .cmd/.bat"); //$NON-NLS-1$
+		}
+		final String absPath = absCmd.toString();
+		if (absPath.indexOf('&') >= 0 || absPath.indexOf('|') >= 0 || absPath.indexOf('>') >= 0
+				|| absPath.indexOf('<') >= 0 || absPath.indexOf('^') >= 0 || absPath.indexOf('%') >= 0) {
+			throw new IOException("Ruta de script con metacaracteres no permitidos"); //$NON-NLS-1$
+		}
+		if (params != null) {
+			for (final String param : params) {
+				if (param != null && (param.indexOf('&') >= 0 || param.indexOf('|') >= 0
+						|| param.indexOf('>') >= 0 || param.indexOf('<') >= 0 || param.indexOf('^') >= 0)) {
+					throw new IOException("Parametro con metacaracteres no permitidos"); //$NON-NLS-1$
+				}
+			}
+		}
+
 		final File workingDir = ConfiguratorUtil.getApplicationDirectory();
 
 		final ArrayList<String> processParams = new ArrayList<>();
-
+		// cmd.exe /c con argv en lista (sin concatenar la linea de comando)
 		processParams.add("cmd.exe"); //$NON-NLS-1$
 		processParams.add("/c"); //$NON-NLS-1$
-		processParams.add(cmdPath.toAbsolutePath().toString());
+		processParams.add(absPath);
 		if (params != null) {
 			Collections.addAll(processParams, params);
 		}
 
-		final ProcessBuilder pb = new ProcessBuilder(processParams.toArray(new String[0]));
+		// nosemgrep: java.lang.security.audit.command-injection-process-builder.command-injection-process-builder
+		// Triage SEMGREP-TRIAGE.md: argv list + path/params validados; necesario para .cmd en Windows
+		final ProcessBuilder pb = new ProcessBuilder(processParams);
 
 		pb.directory(workingDir);
 		pb.redirectErrorStream(true);
