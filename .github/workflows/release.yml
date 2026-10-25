@@ -50,11 +50,13 @@ jobs:
 
       - name: Build all modules
         run: |
-          mvn -B clean install -DskipTests
+          export SOURCE_DATE_EPOCH="${SOURCE_DATE_EPOCH:-$(git log -1 --format=%ct)}"
+          echo "SOURCE_DATE_EPOCH=$SOURCE_DATE_EPOCH" >> "$GITHUB_ENV"
+          SOURCE_DATE_EPOCH="$SOURCE_DATE_EPOCH" mvn -B clean install -DskipTests -Dproject.build.outputTimestamp="$SOURCE_DATE_EPOCH"
 
       - name: Build env-install profile (JAR + services)
         run: |
-          mvn -B clean install -DskipTests -Denv=install -pl '!afirma-server-triphase-signer,!afirma-signature-retriever,!afirma-signature-storage'
+          SOURCE_DATE_EPOCH="$SOURCE_DATE_EPOCH" mvn -B clean install -DskipTests -Denv=install -Dproject.build.outputTimestamp="$SOURCE_DATE_EPOCH" -pl '!afirma-server-triphase-signer,!afirma-signature-retriever,!afirma-signature-storage'
 
       - name: Run F2 regression vectors
         run: |
@@ -66,11 +68,14 @@ jobs:
           WORK="$RUNNER_TEMP/reproducible-verify"
           mkdir -p "$WORK"
           REPO="$GITHUB_WORKSPACE"
+          # Pin wall-clock independent timestamps for both clean builds (SEC-2026-010).
+          export SOURCE_DATE_EPOCH="$(git log -1 --format=%ct)"
+          MVN_REPRO=(-Dproject.build.outputTimestamp="${SOURCE_DATE_EPOCH}")
 
           git worktree add "$WORK/worktree1" HEAD
           (
             cd "$WORK/worktree1"
-            mvn -B clean install -DskipTests -Denv=install -pl afirma-simple -am
+            SOURCE_DATE_EPOCH="$SOURCE_DATE_EPOCH" mvn -B clean install -DskipTests -Denv=install "${MVN_REPRO[@]}" -pl afirma-simple -am
             cp afirma-simple/target/autofirma.jar "$WORK/build1.jar"
             sha256sum "$WORK/build1.jar" > "$WORK/build1.sha256"
           )
@@ -78,21 +83,49 @@ jobs:
           git worktree add "$WORK/worktree2" HEAD
           (
             cd "$WORK/worktree2"
-            mvn -B clean install -DskipTests -Denv=install -pl afirma-simple -am
+            SOURCE_DATE_EPOCH="$SOURCE_DATE_EPOCH" mvn -B clean install -DskipTests -Denv=install "${MVN_REPRO[@]}" -pl afirma-simple -am
             cp afirma-simple/target/autofirma.jar "$WORK/build2.jar"
             sha256sum "$WORK/build2.jar" > "$WORK/build2.sha256"
           )
 
           sha256_1=$(cut -d' ' -f1 "$WORK/build1.sha256")
           sha256_2=$(cut -d' ' -f1 "$WORK/build2.sha256")
+          echo "SOURCE_DATE_EPOCH=$SOURCE_DATE_EPOCH"
           echo "Build 1 SHA256: $sha256_1"
           echo "Build 2 SHA256: $sha256_2"
+          mkdir -p "$REPO/verify-reproducible"
           if [ "$sha256_1" != "$sha256_2" ]; then
-            echo "Reproducible build FAILED: Hashes differ!"
+            echo "Reproducible build FAILED: Hashes differ — publishing first differing ZIP entry (ROADMAP SEC-2026-010)"
+            python3 - "$WORK/build1.jar" "$WORK/build2.jar" "$REPO/verify-reproducible/first-zip-diff.txt" <<'PY'
+          import sys, zipfile
+          a, b, out = sys.argv[1], sys.argv[2], sys.argv[3]
+          za, zb = zipfile.ZipFile(a), zipfile.ZipFile(b)
+          na = {i.filename: i for i in za.infolist()}
+          nb = {i.filename: i for i in zb.infolist()}
+          lines = []
+          for name in sorted(set(na) | set(nb)):
+              ia, ib = na.get(name), nb.get(name)
+              if ia is None or ib is None:
+                  lines.append(f"missing entry: {name} only_in={'a' if ib is None else 'b'}")
+                  break
+              da, db = za.read(name), zb.read(name)
+              if da != db or ia.date_time != ib.date_time or ia.compress_type != ib.compress_type:
+                  lines.append(f"first-diff: {name}")
+                  lines.append(f"  date_time_a={ia.date_time} date_time_b={ib.date_time}")
+                  lines.append(f"  compress_a={ia.compress_type} compress_b={ib.compress_type}")
+                  lines.append(f"  size_a={len(da)} size_b={len(db)} content_equal={da == db}")
+                  break
+          else:
+              lines.append("no per-entry content/time diffs found (outer hashes still differ)")
+          open(out, "w", encoding="utf-8").write("\n".join(lines) + "\n")
+          print("\n".join(lines))
+          PY
+            echo "SHA256_1: $sha256_1" > "$REPO/verify-reproducible/reproducible-build.sha256"
+            echo "SHA256_2: $sha256_2" >> "$REPO/verify-reproducible/reproducible-build.sha256"
+            echo "STATUS: DIFFER (see first-zip-diff.txt)" >> "$REPO/verify-reproducible/reproducible-build.sha256"
             exit 1
           fi
           echo "Reproducible build verified"
-          mkdir -p "$REPO/verify-reproducible"
           echo "SHA256: $sha256_1" > "$REPO/verify-reproducible/reproducible-build.sha256"
 
           git worktree remove "$WORK/worktree1" --force
