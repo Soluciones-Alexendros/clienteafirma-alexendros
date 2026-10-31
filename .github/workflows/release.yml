@@ -228,8 +228,10 @@ jobs:
 
       - name: Create Release Notes
         if: env.DO_PUBLISH == 'true'
+        env:
+          REF_NAME: ${{ github.ref_name }}
         run: |
-          printf '%s\n' "## Autofirma ${{ github.ref_name }}" "" "### Qué incluye" "- JAR autoejecutable (\`autofirma.jar\`)" "- Paquete DEB (Debian/Ubuntu)" "- Paquete RPM (Fedora/RHEL/openSUSE)" "- AppImage (universal Linux)" "- Flatpak (cuando esté disponible)" "- Checksums SHA256 para cada artefacto" "- SBOM (CycloneDX JSON)" "- Firmas GPG (\`.asc\`) y checksums SHA256" "" "### Verificación" "\`\`\`bash" "# Verificar firma GPG" "gpg --verify autofirma-${{ github.ref_name }}.jar.asc autofirma-${{ github.ref_name }}.jar" "" "# Verificar checksum" "sha256sum -c SHA256SUMS" "\`\`\`" "" "### Cambios" "Ver [CHANGELOG.md](CHANGELOG.md) para detalles." "" "### Licencia" "GPL-2.0+ / EUPL-1.1" > release-notes.md
+          printf '%s\n' "## Autofirma ${REF_NAME}" "" "### Qué incluye" "- JAR autoejecutable (\`autofirma.jar\`)" "- Paquete DEB (Debian/Ubuntu)" "- Paquete RPM (Fedora/RHEL/openSUSE)" "- AppImage (universal Linux)" "- Flatpak (cuando esté disponible)" "- Checksums SHA256 para cada artefacto" "- SBOM (CycloneDX JSON)" "- Firmas GPG (\`.asc\`) y checksums SHA256" "" "### Verificación" "\`\`\`bash" "# Verificar firma GPG" "gpg --verify autofirma-${REF_NAME}.jar.asc autofirma-${REF_NAME}.jar" "" "# Verificar checksum" "sha256sum -c SHA256SUMS" "\`\`\`" "" "### Cambios" "Ver [CHANGELOG.md](CHANGELOG.md) para detalles." "" "### Licencia" "GPL-2.0+ / EUPL-1.1" > release-notes.md
 
       - name: Create GitHub Release
         if: env.DO_PUBLISH == 'true'
@@ -304,10 +306,15 @@ jobs:
       contents: read
     steps:
       - name: Notify completion
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          INPUT_PUBLISH: ${{ inputs.publish }}
+          REF_NAME: ${{ github.ref_name }}
+          REPOSITORY: ${{ github.repository }}
         run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.publish }}" != "true" ]; then
+          if [ "$EVENT_NAME" = "workflow_dispatch" ] && [ "$INPUT_PUBLISH" != "true" ]; then
             echo "Dry-run Release completed (no publish)"
           else
-            echo "Release ${{ github.ref_name }} published successfully"
-            echo "URL: https://github.com/${{ github.repository }}/releases/tag/${{ github.ref_name }}"
+            echo "Release ${REF_NAME} published successfully"
+            echo "URL: https://github.com/${REPOSITORY}/releases/tag/${REF_NAME}"
           fi
