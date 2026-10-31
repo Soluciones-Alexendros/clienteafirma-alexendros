@@ -9,3 +9,7 @@
   2. Descartar entradas de clave simétrica (SecretKeyEntry) de los almacenes NSS.
   3. Corregir descripción paquete DEB.
 - Diferencias deliberadas respecto al oficial: ninguna en los 4 ficheros comparados.
+
+- Diferencia deliberada en KeyStoreUtilities.java: endurecimiento frente a inyección de comandos
+  (metacaracteres en rutas de Windows y uso de variable de entorno en lugar de concatenación).
+  Se conserva la versión del fork por seguridad.
