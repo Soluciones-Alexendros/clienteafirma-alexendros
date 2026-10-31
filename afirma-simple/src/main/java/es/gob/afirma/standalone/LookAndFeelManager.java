@@ -222,14 +222,7 @@ public final class LookAndFeelManager {
 	 */
 	private static boolean isGnomeDarkMode() {
 		return isGnomeDesktop()
-				&& queryArgvContains(
-						new String[] {
-								"gsettings", //$NON-NLS-1$
-								"get", //$NON-NLS-1$
-								"org.gnome.desktop.interface", //$NON-NLS-1$
-								"gtk-theme" //$NON-NLS-1$
-						},
-						"dark"); //$NON-NLS-1$
+				&& readProcessOutput(runGsettingsGtkTheme()).toLowerCase().contains("dark"); //$NON-NLS-1$
 	}
 
 	private static boolean isGnomeDesktop() {
@@ -241,29 +234,51 @@ public final class LookAndFeelManager {
 		if (dataDirs != null && dataDirs.toLowerCase().contains("gnome")) { //$NON-NLS-1$
 			return true;
 		}
-		return queryArgvContains(new String[] { "ps", "-e" }, "gnome"); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
-	}
-
-	private static boolean queryArgvContains(final String[] argv, final String subResult) {
-		return queryArgv(argv).toLowerCase().contains(subResult);
+		return readProcessOutput(runPsList()).toLowerCase().contains("gnome"); //$NON-NLS-1$
 	}
 
 	/**
-	 * Ejecuta un comando en lista (sin shell) y captura stdout.
-	 * @param argv Comando y argumentos; el binario debe estar en lista blanca.
-	 * @return Salida del proceso o cadena vac&iacute;a.
+	 * Solo admite los binarios literales usados para detectar el tema (sin ruta).
+	 * @param binary Nombre del ejecutable propuesto.
+	 * @return {@code true} si es {@code gsettings} o {@code ps} sin separadores de ruta.
 	 */
-	private static String queryArgv(final String[] argv) {
-		if (argv == null || argv.length == 0) {
-			return ""; //$NON-NLS-1$
+	static boolean isAllowedThemeBinary(final String binary) {
+		if (binary == null || binary.isEmpty()) {
+			return false;
 		}
-		final String binary = argv[0];
-		if (!"gsettings".equals(binary) && !"ps".equals(binary)) { //$NON-NLS-1$ //$NON-NLS-2$
-			LOGGER.warning("Comando no permitido para deteccion de tema: " + binary); //$NON-NLS-1$
+		if (binary.indexOf('/') >= 0 || binary.indexOf('\\') >= 0) {
+			return false;
+		}
+		return "gsettings".equals(binary) || "ps".equals(binary); //$NON-NLS-1$ //$NON-NLS-2$
+	}
+
+	/** ProcessBuilder con argv literal (sin shell). */
+	private static ProcessBuilder runGsettingsGtkTheme() {
+		if (!isAllowedThemeBinary("gsettings")) { //$NON-NLS-1$
+			return null;
+		}
+		return new ProcessBuilder(
+				"gsettings", //$NON-NLS-1$
+				"get", //$NON-NLS-1$
+				"org.gnome.desktop.interface", //$NON-NLS-1$
+				"gtk-theme" //$NON-NLS-1$
+		);
+	}
+
+	/** ProcessBuilder con argv literal (sin shell). */
+	private static ProcessBuilder runPsList() {
+		if (!isAllowedThemeBinary("ps")) { //$NON-NLS-1$
+			return null;
+		}
+		return new ProcessBuilder("ps", "-e"); //$NON-NLS-1$ //$NON-NLS-2$
+	}
+
+	private static String readProcessOutput(final ProcessBuilder builder) {
+		if (builder == null) {
 			return ""; //$NON-NLS-1$
 		}
 		try {
-			final Process process = new ProcessBuilder(argv).start();
+			final Process process = builder.start();
 			final StringBuilder stringBuilder = new StringBuilder();
 			try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
 				String actualReadLine;
