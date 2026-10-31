@@ -1,5 +1,6 @@
 package es.gob.afirma.core.misc;
 
+import java.io.IOException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -9,6 +10,8 @@ import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.parsers.SAXParser;
 import javax.xml.parsers.SAXParserFactory;
 
+import org.xml.sax.EntityResolver;
+import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 
 /**
@@ -61,33 +64,42 @@ public class SecureXmlBuilder {
 				}
 			}
 
-			// Prohibimos la declaración DOCTYPE para prevenir ataques de expansión
-			// de entidades internas (billion laughs / XML bomb)
-			try {
-				SECURE_BUILDER_FACTORY.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true); //$NON-NLS-1$
-			}
-			catch (final Exception e) {
-				Logger.getLogger("es.gob.afirma").log(Level.SEVERE, "No se ha podido prohibir la declaración DOCTYPE en la factoria XML: " + e); //$NON-NLS-1$ //$NON-NLS-2$
-				throw new IllegalStateException("No se pudo prohibir DOCTYPE en DocumentBuilderFactory", e);
-			}
-
-			// Desactivamos entidades externas también en DOM (además de SAX)
+			// DOCTYPE interno se admite (firmas XML legítimas). Bloqueamos entidades y DTD
+			// externas (#55). FEATURE_SECURE_PROCESSING limita bombas de entidades.
 			try {
 				SECURE_BUILDER_FACTORY.setFeature("http://xml.org/sax/features/external-general-entities", false); //$NON-NLS-1$
 				SECURE_BUILDER_FACTORY.setFeature("http://xml.org/sax/features/external-parameter-entities", false); //$NON-NLS-1$
+				SECURE_BUILDER_FACTORY.setFeature("http://apache.org/xml/features/nonvalidating/load-external-dtd", false); //$NON-NLS-1$
 			}
 			catch (final Exception e) {
-				Logger.getLogger("es.gob.afirma").log(Level.SEVERE, "No se han podido desactivar entidades externas en DocumentBuilderFactory: " + e); //$NON-NLS-1$ //$NON-NLS-2$
+				Logger.getLogger("es.gob.afirma").log(Level.SEVERE, "No se han podido desactivar entidades/DTD externos en DocumentBuilderFactory: " + e); //$NON-NLS-1$ //$NON-NLS-2$
 				throw new IllegalStateException("No se pudieron desactivar entidades externas en DocumentBuilderFactory", e);
 			}
 
 			SECURE_BUILDER_FACTORY.setValidating(false);
 			SECURE_BUILDER_FACTORY.setNamespaceAware(true);
 			SECURE_BUILDER_FACTORY.setXIncludeAware(false);
-			SECURE_BUILDER_FACTORY.setExpandEntityReferences(false);
+			// Expandimos entidades internas; el EntityResolver rechaza file/http externos.
+			SECURE_BUILDER_FACTORY.setExpandEntityReferences(true);
 		}
-		return SECURE_BUILDER_FACTORY.newDocumentBuilder();
+		final DocumentBuilder builder = SECURE_BUILDER_FACTORY.newDocumentBuilder();
+		builder.setEntityResolver(REJECT_EXTERNAL_ENTITIES);
+		return builder;
 	}
+
+	/** Rechaza cualquier referencia SYSTEM/PUBLIC a recurso externo. */
+	private static final EntityResolver REJECT_EXTERNAL_ENTITIES = new EntityResolver() {
+		@Override
+		public InputSource resolveEntity(final String publicId, final String systemId) throws SAXException, IOException {
+			if (systemId != null && !systemId.isEmpty()) {
+				throw new SAXException("Referencia externa no permitida en XML: " + systemId); //$NON-NLS-1$
+			}
+			if (publicId != null && !publicId.isEmpty()) {
+				throw new SAXException("Referencia externa no permitida en XML"); //$NON-NLS-1$
+			}
+			return new InputSource(new java.io.StringReader("")); //$NON-NLS-1$
+		}
+	};
 
 	/**
      * Construye un parser SAX seguro que no accede a recursos externos.
@@ -118,13 +130,12 @@ public class SecureXmlBuilder {
 				throw new IllegalStateException("No se pudieron desactivar entidades externas en SAXParserFactory", e);
 			}
 
-			// Prohibimos la declaración DOCTYPE en SAX también
 			try {
-				SAX_FACTORY.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true); //$NON-NLS-1$
+				SAX_FACTORY.setFeature("http://apache.org/xml/features/nonvalidating/load-external-dtd", false); //$NON-NLS-1$
 			}
 			catch (final Exception e) {
-				Logger.getLogger("es.gob.afirma").log(Level.SEVERE, "No se ha podido prohibir la declaración DOCTYPE en la factoria SAX XML: " + e); //$NON-NLS-1$
-				throw new IllegalStateException("No se pudo prohibir DOCTYPE en SAXParserFactory", e);
+				Logger.getLogger("es.gob.afirma").log(Level.SEVERE, "No se ha podido desactivar DTD externo en SAX: " + e); //$NON-NLS-1$ //$NON-NLS-2$
+				throw new IllegalStateException("No se pudo desactivar DTD externo en SAXParserFactory", e);
 			}
 
 			SAX_FACTORY.setValidating(false);

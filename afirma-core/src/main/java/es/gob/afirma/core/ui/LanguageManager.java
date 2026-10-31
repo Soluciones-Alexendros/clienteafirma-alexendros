@@ -218,6 +218,11 @@ public class LanguageManager {
 					outputFile = new File(dirPath, entryName);
 				}
 
+				final File destRoot = entryName.startsWith("help/") || entryName.startsWith("help\\") //$NON-NLS-1$ //$NON-NLS-2$
+						? HELP_DIR
+						: new File(dirPath);
+				es.gob.afirma.core.misc.ZipSecurePaths.requireInsideDestination(destRoot, outputFile);
+
 				if (entry.isDirectory()) {
 					outputFile.mkdirs();
 				} else {

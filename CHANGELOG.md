@@ -12,6 +12,7 @@ Formato inspirado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/).
 
 ### Security
 
+- **`strictSslChecks` activado por defecto** (#92): se comprueba el certificado del servidor. Si falla, el aviso explica qué ha pasado, qué revisar (fecha/hora, proxy/red, certificado) y cómo desactivar la opción en Preferencias (deja la conexión sin protección). El botón por defecto es Cerrar. Sin aviso al arrancar. Para sedes con certificado propio: desmarcar «Aceptar sólo conexiones con sitios seguros» en Preferencias, o `-DstrictSslChecks=false`.
 - Retirados de `HEAD` el PFX de instalador, los `afirma.keystore` de aplicación y las contraseñas literales. La firma de instalador exige `AFIRMA_SIGN_PFX` y `AFIRMA_SIGN_PASS` fuera de Git. Gate: `make security-material`.
 
 ### Added

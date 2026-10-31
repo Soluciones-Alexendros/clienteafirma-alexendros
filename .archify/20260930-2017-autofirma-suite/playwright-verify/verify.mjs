@@ -1,11 +1,7 @@
 import { chromium } from 'playwright';
 import fs from 'fs';
 import path from 'path';
-import { fileURLToPath } from 'url';
-
-const ROOT = '/home/alexendros/Aplicaciones/Fuentes/Autofirma-2026';
-const SUITE = path.join(ROOT, '.archify/20260930-2017-autofirma-suite');
-const OUT = path.join(SUITE, 'playwright-verify');
+import { ROOT, SUITE, OUT, resolveWithinAllowed } from './path-safe.mjs';
 
 const diagrams = [
   { type: 'architecture', html: 'architecture/autofirma-mapa.html', cand: 'architecture/candidate.json',
@@ -44,7 +40,7 @@ function verifySources(candPath) {
   const sources = collectSources(cand);
   const results = [];
   for (const s of sources) {
-    const abs = path.join(ROOT, s.path);
+    const abs = resolveWithinAllowed(ROOT, s.path);
     const okExists = fs.existsSync(abs);
     let okLines = false;
     let lineCount = 0;
@@ -61,7 +57,6 @@ function verifySources(candPath) {
 }
 
 function looksSpanish(text) {
-  // Heuristic: has Spanish accents or common Spanish words, and not only English UI chrome
   const esHints = /[áéíóúñ¿¡]|Cómo|Qué|Del |Persona|Autofirma|firma|comprob|página|local|fase/i;
   return esHints.test(text);
 }
@@ -76,8 +71,8 @@ const browser = await chromium.launch({
 const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
 
 for (const d of diagrams) {
-  const htmlPath = path.join(SUITE, d.html);
-  const candPath = path.join(SUITE, d.cand);
+  const htmlPath = resolveWithinAllowed(SUITE, d.html);
+  const candPath = resolveWithinAllowed(SUITE, d.cand);
   const url = 'file://' + htmlPath;
   const entry = { type: d.type, html: htmlPath, titleOk: false, labels: {}, spanishTitle: false, sourceChecks: [], errors: [] };
 
@@ -96,14 +91,12 @@ for (const d of diagrams) {
       if (!found) entry.errors.push('missing label: ' + lab);
     }
 
-    // English-only authored content red flags (not viewer chrome)
     const englishAuthored = [];
     for (const bad of ['Sample Web App', 'API Server', 'User Interface', 'Release phases', 'clickstream']) {
       if (bodyText.includes(bad)) englishAuthored.push(bad);
     }
     entry.englishAuthoredLeaks = englishAuthored;
 
-    // Try open finder with /
     try {
       await page.keyboard.press('/');
       await page.waitForTimeout(300);
@@ -121,7 +114,7 @@ for (const d of diagrams) {
       entry.searchError = String(e.message || e);
     }
 
-    const shot = path.join(OUT, `${d.type}-1440.png`);
+    const shot = resolveWithinAllowed(OUT, `${d.type}-1440.png`);
     await page.screenshot({ path: shot, fullPage: false });
     entry.screenshot = shot;
 
@@ -144,6 +137,6 @@ for (const d of diagrams) {
 }
 
 await browser.close();
-fs.writeFileSync(path.join(OUT, 'report.json'), JSON.stringify(report, null, 2));
+fs.writeFileSync(resolveWithinAllowed(OUT, 'report.json'), JSON.stringify(report, null, 2));
 console.log('REPORT', path.join(OUT, 'report.json'), 'overall', report.ok);
 process.exit(report.ok ? 0 : 1);
