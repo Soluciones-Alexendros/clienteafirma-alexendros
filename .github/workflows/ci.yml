@@ -275,7 +275,7 @@ jobs:
 
       - name: Push/dispatch — fixture gate only (full upload stays in codeql-semgrep)
         if: github.event_name != 'pull_request'
-        run: echo "Non-PR run: fixture gate already executed; no diff baseline."
+        run: 'echo "Non-PR run: fixture gate already executed; no diff baseline."'
 
   ci-gate:
     name: ci-gate
