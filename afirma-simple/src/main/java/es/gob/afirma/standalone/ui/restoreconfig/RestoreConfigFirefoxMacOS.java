@@ -336,7 +336,7 @@ final class RestoreConfigFirefoxMacOS {
 
 				 if (!isParent(outDir, outFile)) {
 					 zipIs.closeEntry();
-					 throw new IOException("Se ha encontrado en el archivo comprimido una ruta que apuntaba fuera del directorio de destino"); //$NON-NLS-1$
+					 throw new IOException("El archivo comprimido apunta fuera de la carpeta de destino. No se ha extraído nada de esa entrada."); //$NON-NLS-1$
 				 }
 
 				 if (entry.isDirectory()) {
@@ -368,13 +368,12 @@ final class RestoreConfigFirefoxMacOS {
 	  * @throws IOException Cuando no se pueda canonizar el nombre de fichero hijo.
 	  */
 	 private static boolean isParent(final File parentDir, final File childFile) throws IOException {
-
 		 final File parent = parentDir.getCanonicalFile();
-		 File intermediateDir = childFile.getCanonicalFile();
-		 while (intermediateDir != null && !intermediateDir.equals(parent)) {
-			 intermediateDir = intermediateDir.getParentFile();
-		 }
-		 return intermediateDir != null;
+		 final File child = childFile.getCanonicalFile();
+		 final String parentPath = parent.getPath();
+		 final String childPath = child.getPath();
+		 final String prefix = parentPath.endsWith(File.separator) ? parentPath : parentPath + File.separator;
+		 return childPath.equals(parentPath) || childPath.startsWith(prefix);
 	 }
 
 	 /** Obtiene el path para la llamada a CertUtil.
