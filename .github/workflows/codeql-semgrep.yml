@@ -6,9 +6,9 @@ concurrency:
 
 on:
   push:
-    branches: [master, main]
+    branches: [master, main, plan/clienteafirma-alertas]
   pull_request:
-    branches: [master, main]
+    branches: [master, main, plan/clienteafirma-alertas]
   schedule:
     - cron: '0 3 * * 0'  # Weekly on Sunday
   workflow_dispatch:
@@ -113,14 +113,16 @@ jobs:
           if-no-files-found: ignore
           retention-days: 7
 
-  sarif-merge:
-    name: Merge SARIF
+  # CodeQL SARIF stays as artifact only (default setup blocks advanced upload).
+  # Semgrep uploads once above (category: semgrep). Do not re-upload Semgrep under
+  # category "merged" — that duplicated every Semgrep alert in code scanning (#93).
+  sarif-artifacts:
+    name: Keep CodeQL SARIF artifact
     runs-on: ubuntu-latest
     timeout-minutes: 10
     needs: [codeql, semgrep]
     continue-on-error: true
     permissions:
-      security-events: write
       contents: read
     steps:
       - name: Download CodeQL SARIF
@@ -130,28 +132,7 @@ jobs:
           name: codeql-results
           path: sarif/codeql
 
-      - name: Download Semgrep SARIF
-        continue-on-error: true
-        uses: actions/download-artifact@v4
-        with:
-          name: semgrep-results
-          path: sarif/semgrep
-
-      - name: Merge SARIF files
-        id: merge
+      - name: Confirm Semgrep was not re-uploaded
         run: |
-          mkdir -p sarif/merged
-          cp -r sarif/codeql/* sarif/merged/ 2>/dev/null || true
-          cp -r sarif/semgrep/* sarif/merged/ 2>/dev/null || true
-          ls -la sarif/merged/ || true
-          if ! find sarif/merged -name '*.sarif' -print -quit | grep -q .; then
-            echo "no_sarif=true" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Upload merged SARIF
-        if: steps.merge.outputs.no_sarif != 'true'
-        continue-on-error: true
-        uses: github/codeql-action/upload-sarif@v3
-        with:
-          sarif_file: sarif/merged
-          category: merged
+          echo "Semgrep SARIF is uploaded only by job semgrep (category: semgrep)."
+          ls -la sarif/codeql 2>/dev/null || echo "No CodeQL SARIF artifact (warn-only)."
