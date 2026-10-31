@@ -517,6 +517,24 @@ public final class CheckHashDirDialog extends JDialog implements KeyListener {
 			throws ParserConfigurationException, TransformerException {
 
 		final DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
+		try {
+			docFactory.setFeature(javax.xml.XMLConstants.FEATURE_SECURE_PROCESSING, Boolean.TRUE.booleanValue());
+			docFactory.setFeature("http://xml.org/sax/features/external-general-entities", false); //$NON-NLS-1$
+			docFactory.setFeature("http://xml.org/sax/features/external-parameter-entities", false); //$NON-NLS-1$
+			docFactory.setFeature("http://apache.org/xml/features/nonvalidating/load-external-dtd", false); //$NON-NLS-1$
+			try {
+				docFactory.setAttribute(javax.xml.XMLConstants.ACCESS_EXTERNAL_DTD, ""); //$NON-NLS-1$
+				docFactory.setAttribute(javax.xml.XMLConstants.ACCESS_EXTERNAL_SCHEMA, ""); //$NON-NLS-1$
+			}
+			catch (final Exception e) {
+				/* algunas implementaciones no soportan estos atributos */
+			}
+		}
+		catch (final ParserConfigurationException e) {
+			throw e;
+		}
+		docFactory.setXIncludeAware(false);
+		docFactory.setExpandEntityReferences(false);
 		final DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
 
 		// Elemento raiz
