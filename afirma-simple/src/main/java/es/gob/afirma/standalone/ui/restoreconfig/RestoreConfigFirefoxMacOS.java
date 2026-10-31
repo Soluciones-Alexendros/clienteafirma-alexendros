@@ -332,12 +332,7 @@ final class RestoreConfigFirefoxMacOS {
 				 RestoreConfigFirefoxMacOS.class.getResourceAsStream(resource));) {
 
 			 while ((entry = zipIs.getNextEntry()) != null) {
-				 final File outFile = new File(outDir, entry.getName()).getCanonicalFile();
-
-				 if (!isParent(outDir, outFile)) {
-					 zipIs.closeEntry();
-					 throw new IOException("El archivo comprimido apunta fuera de la carpeta de destino. No se ha extraído nada de esa entrada."); //$NON-NLS-1$
-				 }
+				 final File outFile = es.gob.afirma.core.misc.ZipSecurePaths.safeResolve(outDir, entry.getName());
 
 				 if (entry.isDirectory()) {
 					 outFile.mkdirs();

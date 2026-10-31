@@ -720,12 +720,7 @@ final class RestoreConfigFirefox {
 
 				while ((entry = zipIs.getNextEntry()) != null) {
 
-					final File outFile = new File(outDir, entry.getName()).getCanonicalFile();
-
-					 if (!isParent(outDir, outFile)) {
-						 zipIs.closeEntry();
-						 throw new IOException("El archivo comprimido apunta fuera de la carpeta de destino. No se ha extraído nada de esa entrada."); //$NON-NLS-1$
-					 }
+					final File outFile = es.gob.afirma.core.misc.ZipSecurePaths.safeResolve(outDir, entry.getName());
 
 					try (final OutputStream outFis = new FileOutputStream(outFile);) {
 						while ((n = zipIs.read(buffer)) > 0) {
@@ -739,12 +734,7 @@ final class RestoreConfigFirefox {
 			}
 			else {
 				while ((entry = zipIs.getNextEntry()) != null) {
-					final File outFile = new File(outDir, entry.getName());
-
-					if (!isParent(outDir, outFile)) {
-						 zipIs.closeEntry();
-						 throw new IOException("El archivo comprimido apunta fuera de la carpeta de destino. No se ha extraído nada de esa entrada."); //$NON-NLS-1$
-					 }
+					final File outFile = es.gob.afirma.core.misc.ZipSecurePaths.safeResolve(outDir, entry.getName());
 
 					if (entry.isDirectory()) {
 						outFile.mkdirs();
