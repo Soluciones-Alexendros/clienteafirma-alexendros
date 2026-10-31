@@ -58,7 +58,7 @@ Detalle: [TEST-PORTING-MAP.md](TEST-PORTING-MAP.md).
 ## P1-TLS — Solape TLS (análisis hecho; código en integración)
 
 - Decisión de producto: **no** activar comprobaciones TLS estrictas por defecto (las sedes a veces usan cadenas que fallarían).
-- Preferencia `-DstrictSslChecks=true` solo si el usuario la pide.
+- `strictSslChecks` activo por defecto (#92); desactivar en Preferencias o `-DstrictSslChecks=false` si la sede lo necesita.
 - Análisis: [TLS-OVERLAP-ANALYSIS.md](TLS-OVERLAP-ANALYSIS.md).
 
 ---

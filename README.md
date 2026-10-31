@@ -44,7 +44,7 @@ Los números de esta tabla salen del POM de este árbol (`pom.xml`, versión `1.
 | SpongyCastle dentro del JAR sombreado | Presente en el upstream | Sigue entrando en el JAR de `mvn -Denv=install` como transitiva `com.madgag.spongycastle` **1.56.0.0** (lo arrastra iText empaquetado). No está eliminado del artefacto |
 | Clave de firma de instalador en Git | PFX y contraseña en el árbol upstream | Retirados de `HEAD`. Firma de instalador solo con `AFIRMA_SIGN_PFX` y `AFIRMA_SIGN_PASS` fuera del repo. Gate: `make security-material` |
 | Almacenes de test | En `src/test/resources` | Los mismos fixtures, con SHA-256 en `scripts/ci/crypto-material-allowlist.txt` |
-| TLS estricto por defecto | No | No. `strictSslChecks` sigue opt-in y **no** está en `master` |
+| TLS estricto por defecto | No (histórico permisivo) | Sí (`strictSslChecks` por defecto; desactivable en Preferencias) |
 | Nombres accesibles (certificado, PIN, confirmar) | No en el upstream 1.9.1 | En `master` desde `8420011`. Falta la sesión con Orca |
 | CI que bloquea `master` | No equivalente | `quality`, `test`, `build`, `smoke` |
 | Release comunitario firmado | Instaladores del Estado | Aún no. No hay tag `v1.9.1-community.N` |
