@@ -59,12 +59,7 @@ public final class ConfiguratorUtil {
 		try (final ZipInputStream zipIs = new ZipInputStream(ConfiguratorUtil.class.getResourceAsStream(resource));) {
 			ZipEntry entry;
 			while ((entry = zipIs.getNextEntry()) != null) {
-				final File outFile = new File(outDir, entry.getName()).getCanonicalFile();
-
-				if (!isParent(outDir, outFile)) {
-					zipIs.closeEntry();
-					throw new IOException("El archivo comprimido apunta fuera de la carpeta de destino. No se ha extraído nada de esa entrada."); //$NON-NLS-1$
-				}
+				final File outFile = es.gob.afirma.core.misc.ZipSecurePaths.safeResolve(outDir, entry.getName());
 
 				// Si es un directorio y no existe en local, lo creamos
 				if (entry.isDirectory()) {
