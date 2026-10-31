@@ -5,7 +5,7 @@ name: security
 on:
   pull_request:
   push:
-    branches: [master, main]
+    branches: [master, main, plan/clienteafirma-alertas]
   schedule:
     - cron: '17 5 * * 1'
 
