@@ -37,7 +37,7 @@ Si una sede acepta firmas del cliente oficial, el objetivo de este fork es que *
 | CI abierta | Limitada / no equivale al programa comunitario | Jobs `quality`, `test`, `community`, `build`, `smoke`, `build-baseline` | Fachada local: `make validate` |
 | Empaquetado Linux de prueba | `.deb`/`.rpm` oficiales en descarga del Estado | Empaquetado de desarrollo + `scripts/mvp.sh` | No sustituye el instalador publicado en firmaelectronica.gob.es |
 | Parsers XML endurecidos | `SecureXmlBuilder` en parte del árbol; sinks XXE ampliados en el fork | OOXML / XAdES trifásico vía builder seguro ([#4](https://github.com/Alexendros/clienteafirma/pull/4)); hash: validación XSD previa y parseo posterior seguro | Mitiga XXE en varios sinks; la validación XSD previa del flujo hash aún no está endurecida del todo |
-| TLS estricto | Comportamiento histórico compatible con sedes | El default sigue siendo el histórico. `strictSslChecks` está en la rama `prefs/strict-ssl`, no en `master` | No se endurece TLS por defecto |
+| TLS estricto | Comportamiento histórico permisivo | `strictSslChecks` **activado por defecto** (#92); se puede desactivar en Preferencias | Compatibilidad con sedes vía preferencia |
 | Accesibilidad (a11y) | Deuda frente a EN 301 549 | Nombres accesibles en certificado, PIN y confirmar, en `master` (`8420011`) | La sesión con Orca sigue pendiente |
 | Documentación de programa | README de producto CTT | Fases F0–F10, ROADMAP, TASKS, Archify | Orientada a ciudadanos y mantenedores |
 
