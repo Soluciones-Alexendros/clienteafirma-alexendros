@@ -74,6 +74,14 @@ public class SSLErrorProcessor implements HttpErrorProcessor {
 			throw cause;
 		}
 
+		// Con comprobaciones estrictas (defecto) no ofrecemos importar ni desactivar:
+		// solo informamos en lenguaje llano y dejamos cerrar.
+		if (Boolean.parseBoolean(System.getProperty(
+				UrlHttpManagerImpl.JAVA_PARAM_STRICT_SSL_CHECKS, Boolean.TRUE.toString()))) {
+			showStrictSslFailureDialog();
+			throw cause;
+		}
+
 		// Inicializamos el objeto
 		initialize();
 
@@ -396,6 +404,35 @@ public class SSLErrorProcessor implements HttpErrorProcessor {
 	 */
 	public boolean isCancelled() {
 		return this.cancelled;
+	}
+
+	/**
+	 * Texto del aviso cuando falla la comprobaci&oacute;n del servidor (modo estricto).
+	 * Orden fijo: qu&eacute; ha pasado, qu&eacute; revisar, c&oacute;mo desactivar en Preferencias.
+	 * @return Mensaje multil&iacute;nea localizado.
+	 */
+	public static String buildStrictSslFailureMessage() {
+		return CoreMessages.getString("SSLStrictFailureDialog.2") + "\n\n" //$NON-NLS-1$ //$NON-NLS-2$
+				+ CoreMessages.getString("SSLStrictFailureDialog.3") + "\n\n" //$NON-NLS-1$ //$NON-NLS-2$
+				+ CoreMessages.getString("SSLStrictFailureDialog.4"); //$NON-NLS-1$
+	}
+
+	private static void showStrictSslFailureDialog() {
+		if (!hasGraphicsEnvironment()) {
+			LOGGER.info("Fallo SSL estricto sin entorno grafico; no se muestra dialogo"); //$NON-NLS-1$
+			return;
+		}
+		try {
+			AOUIFactory.showMessageDialog(
+					null,
+					buildStrictSslFailureMessage(),
+					CoreMessages.getString("SSLStrictFailureDialog.1"), //$NON-NLS-1$
+					AOUIFactory.WARNING_MESSAGE
+			);
+		}
+		catch (final Exception e) {
+			LOGGER.warning("No se pudo mostrar el aviso SSL estricto: " + e); //$NON-NLS-1$
+		}
 	}
 
 }
