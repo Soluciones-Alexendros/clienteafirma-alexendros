@@ -1,39 +1,78 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": ["config:recommended"],
-  "timezone": "Europe/Madrid",
-  "labels": ["dependencies"],
+  "extends": ["config:recommended", ":dependencyDashboard", "helpers:pinGitHubActionDigests", ":semanticCommits", ":timezone(Europe/Madrid)"],
+  "minimumReleaseAge": "7 days",
+  "prConcurrentLimit": 5,
+  "prHourlyLimit": 2,
   "schedule": ["before 10am on monday"],
-  "rangeStrategy": "bump",
-  "dependencyDashboard": true,
-  "semanticCommits": "enabled",
-  "rebaseWhen": "behind-base-branch",
+  "rebaseWhen": "conflicted",
+  "platformAutomerge": true,
   "enabledManagers": ["maven", "github-actions"],
+  "rangeStrategy": "bump",
+  "labels": ["dependencies"],
+  "pinDigests": true,
   "vulnerabilityAlerts": {
     "enabled": true,
+    "minimumReleaseAge": "3 days",
     "labels": ["security"]
   },
   "packageRules": [
     {
-      "description": "Agrupar y automergear patch+minor de GitHub Actions. Requiere CI verde.",
+      "description": "GitHub Actions (no major): agrupar y automergear patch+minor, fijadas por digest.",
       "matchManagers": ["github-actions"],
       "matchUpdateTypes": ["minor", "patch"],
-      "groupName": "GitHub Actions (non-major)",
+      "groupName": "GitHub Actions (no major)",
+      "automerge": true,
+      "automergeType": "pr",
+      "pinDigests": true,
+      "addLabels": ["dependencies"]
+    },
+    {
+      "description": "Maven plugins de build/test (no major): automerge patch+minor.",
+      "matchManagers": ["maven"],
+      "matchDepTypes": ["build", "test"],
+      "matchUpdateTypes": ["minor", "patch"],
+      "groupName": "Maven plugins de build (no major)",
       "automerge": true,
       "automergeType": "pr",
       "addLabels": ["dependencies"]
     },
     {
-      "description": "Maven: nunca automerge. Este fork firma documentos; revisar BC/iText/xmlsec a mano.",
+      "description": "Maven plugins por nombre (no major).",
       "matchManagers": ["maven"],
-      "automerge": false,
-      "labels": ["dependencies"]
+      "matchPackageNames": ["maven-*-plugin", "junit*"],
+      "matchUpdateTypes": ["minor", "patch"],
+      "groupName": "Maven plugins de build (no major)",
+      "automerge": true,
+      "automergeType": "pr",
+      "addLabels": ["dependencies"]
     },
     {
-      "description": "Majors: siempre revisión manual.",
+      "description": "BouncyCastle: manual.",
+      "matchManagers": ["maven"],
+      "matchPackageNames": ["org.bouncycastle:*"],
+      "automerge": false,
+      "groupName": "BouncyCastle",
+      "addLabels": ["dependencies"]
+    },
+    {
+      "description": "iText / xmlsec / santuario: manual.",
+      "matchManagers": ["maven"],
+      "matchPackageNames": ["com.itextpdf:*", "*xmlsec*", "*santuario*", "org.apache.santuario:*"],
+      "automerge": false,
+      "groupName": "iText / xmlsec / santuario",
+      "addLabels": ["dependencies"]
+    },
+    {
+      "description": "Majors: siempre manual.",
       "matchUpdateTypes": ["major"],
       "automerge": false,
-      "labels": ["dependencies", "breaking-change"]
+      "addLabels": ["breaking-change"]
+    },
+    {
+      "description": "Maven runtime/cripto: sin automerge.",
+      "matchManagers": ["maven"],
+      "automerge": false
     }
   ]
 }
