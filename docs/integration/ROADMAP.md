@@ -116,7 +116,7 @@ No se reescribe el historial y no se publica ninguna release sin borrador previo
 
 Cada punto lleva el comando y el resultado esperado. Se ejecutan en un clon de `master`.
 
-- [x] **BouncyCastle en uso:** `rg -l spongycastle --type java` → sin resultados.
+- [x] **BouncyCastle en uso:** `rg '^import org\.spongycastle' --type java` → sin resultados (el nombre solo queda en comentarios).
 - [x] **SSL estricto por defecto:** `rg -n 'JAVA_PARAM_STRICT_SSL_CHECKS, Boolean.TRUE' afirma-core/src/main/java` → aparece en `UrlHttpManagerImpl` y `SslSecurityManager`.
 - [ ] **Casilla de SSL estricto en Preferencias:** `rg -l strictSsl afirma-core-prefs afirma-simple` → hoy sin resultados.
 - [x] **Zip slip unificado:** `rg -l ZipSecurePaths --type java` → incluye `afirma-core/src/main/java/es/gob/afirma/core/misc/ZipSecurePaths.java`; `gh api repos/Soluciones-Alexendros/clienteafirma-alexendros/code-scanning/alerts?state=open` → ninguna alerta de zip slip.
