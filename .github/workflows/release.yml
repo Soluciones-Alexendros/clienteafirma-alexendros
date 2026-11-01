@@ -242,7 +242,7 @@ jobs:
           body_path: release-notes.md
           files: |
             release-artifacts/*
-          draft: false
+          draft: true
           prerelease: ${{ contains(github.ref_name, '-rc') || contains(github.ref_name, '-beta') || contains(github.ref_name, '-alpha') }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
