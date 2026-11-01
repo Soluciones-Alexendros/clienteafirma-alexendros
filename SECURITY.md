@@ -24,6 +24,19 @@
 
 Incluye: commit, módulo Maven, JDK/OS, y un caso **mínimo sintético** (nunca claves reales). Responderemos en un plazo máximo de 7 días naturales.
 
+### Plazos de respuesta
+
+| Hito | Plazo |
+| ---- | ----- |
+| Acuse de recibo del aviso | ≤ 72 h |
+| Evaluación inicial y clasificación de gravedad | ≤ 7 días |
+| Corrección de vulnerabilidad **crítica** | ≤ 14 días |
+| Corrección de vulnerabilidad **alta** | ≤ 30 días |
+| Corrección de vulnerabilidad **media/baja** | ≤ 90 días |
+| Divulgación coordinada (embargo) | 90 días desde el acuse, salvo acuerdo distinto |
+
+Canal privado preferente: [GitHub Private Vulnerability Reporting](https://github.com/Soluciones-Alexendros/clienteafirma-alexendros/security/advisories/new) (activado en el repositorio). Versiones soportadas: ver tabla anterior (`master` del fork). Si no hay corrección en el plazo, se acuerda una extensión por escrito antes de divulgar.
+
 ## Superficie relevante
 
 - El árbol actual no contiene el PFX ni los `afirma.keystore` de aplicación. La nota está en `docs/security/SEC-2026-001-material.md`. Firmar instaladores exige `AFIRMA_SIGN_PFX` y `AFIRMA_SIGN_PASS` fuera de Git.
