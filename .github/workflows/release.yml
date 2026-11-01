@@ -145,7 +145,8 @@ jobs:
             printf '%s' "$GPG_PRIVATE_KEY" | gpg --import --batch --yes
             gpg --list-secret-keys --keyid-format LONG
           else
-            echo "GPG_PRIVATE_KEY not set, skipping GPG import"
+            echo "ERROR: GPG_PRIVATE_KEY no configurado; release bloqueada." >&2
+            exit 1
           fi
 
       - name: Install appimagetool and FUSE
@@ -204,7 +205,8 @@ jobs:
               fi
             done
           else
-            echo "GPG_PRIVATE_KEY not set, skipping artifact signing"
+            echo "ERROR: GPG_PRIVATE_KEY no configurado; release bloqueada." >&2
+            exit 1
           fi
 
       - name: Sign SHA256SUMS with GPG
@@ -215,7 +217,8 @@ jobs:
             cd release-artifacts
             gpg --armor --detach-sign --output SHA256SUMS.asc SHA256SUMS
           else
-            echo "GPG_PRIVATE_KEY not set, skipping SHA256SUMS signing"
+            echo "ERROR: GPG_PRIVATE_KEY no configurado; release bloqueada." >&2
+            exit 1
           fi
 
       - name: Upload release artifacts
@@ -231,7 +234,7 @@ jobs:
         env:
           REF_NAME: ${{ github.ref_name }}
         run: |
-          printf '%s\n' "## Autofirma ${REF_NAME}" "" "### Qué incluye" "- JAR autoejecutable (\`autofirma.jar\`)" "- Paquete DEB (Debian/Ubuntu)" "- Paquete RPM (Fedora/RHEL/openSUSE)" "- AppImage (universal Linux)" "- Flatpak (cuando esté disponible)" "- Checksums SHA256 para cada artefacto" "- SBOM (CycloneDX JSON)" "- Firmas GPG (\`.asc\`) y checksums SHA256" "" "### Verificación" "\`\`\`bash" "# Verificar firma GPG" "gpg --verify autofirma-${REF_NAME}.jar.asc autofirma-${REF_NAME}.jar" "" "# Verificar checksum" "sha256sum -c SHA256SUMS" "\`\`\`" "" "### Cambios" "Ver [CHANGELOG.md](CHANGELOG.md) para detalles." "" "### Licencia" "GPL-2.0+ / EUPL-1.1" > release-notes.md
+          printf '%s\n' "## Autofirma ${REF_NAME}" "" "### Qué incluye" "- JAR autoejecutable (\`autofirma.jar\`)" "- Paquete DEB (Debian/Ubuntu)" "- Checksums SHA256 para cada artefacto" "- SBOM (CycloneDX JSON)" "- Firmas GPG (\`.asc\`) y checksums SHA256" "" "### Verificación" "\`\`\`bash" "# Verificar firma GPG" "gpg --verify autofirma-${REF_NAME}.jar.asc autofirma-${REF_NAME}.jar" "" "# Verificar checksum" "sha256sum -c SHA256SUMS" "\`\`\`" "" "### Cambios" "Ver [CHANGELOG.md](CHANGELOG.md) para detalles." "" "### Licencia" "GPL-2.0+ / EUPL-1.1" > release-notes.md
 
       - name: Create GitHub Release
         if: env.DO_PUBLISH == 'true'
@@ -242,7 +245,7 @@ jobs:
           body_path: release-notes.md
           files: |
             release-artifacts/*
-          draft: false
+          draft: true
           prerelease: ${{ contains(github.ref_name, '-rc') || contains(github.ref_name, '-beta') || contains(github.ref_name, '-alpha') }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -284,7 +287,8 @@ jobs:
               fi
             done
           else
-            echo "GPG_PRIVATE_KEY not set, skipping GPG signature verification"
+            echo "ERROR: GPG_PRIVATE_KEY no configurado; release bloqueada." >&2
+            exit 1
           fi
 
       - name: Verify SHA256SUMS
