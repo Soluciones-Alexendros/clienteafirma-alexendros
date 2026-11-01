@@ -17,3 +17,13 @@
 - [ ] Sin keystores reales, PINs, certificados de producción ni secretos
 - [ ] No se pisan textos de `license/`
 - [ ] CI `quality` / `test` / `build` / `smoke` en verde
+
+## Seguridad y estabilidad
+
+- [ ] Commits firmados (GPG)
+- [ ] Rama actualizada con merge, no con rebase
+- [ ] Tests añadidos o actualizados
+- [ ] Sin secretos ni certificados reales
+- [ ] Toca `.github/` (la fusiona Alejandro)
+- [ ] Toca criptografía o almacenes de claves (revisión manual)
+- [ ] Actualiza el `CHANGELOG` si cambia el comportamiento
