@@ -36,5 +36,12 @@
 			<artifactId>bcutil-jdk18on</artifactId>
 		</dependency>
 
+	<!-- Test: AOKeyStoreManagerFactory carga MozillaUnifiedKeyStoreManager por reflexion (MOZ_UNI en Linux) -->
+	<dependency>
+		<groupId>es.gob.afirma</groupId>
+		<artifactId>afirma-keystores-mozilla</artifactId>
+		<version>${clienteafirma.version}</version>
+		<scope>test</scope>
+	</dependency>
 	<dependency><groupId>junit</groupId><artifactId>junit</artifactId><scope>test</scope></dependency></dependencies>
 </project>
