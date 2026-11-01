@@ -25,7 +25,7 @@ p0_files=(
   docs/BASELINE.txt
   docs/MVP.md
   docs/ESTADO-FASES.md
-  propuesta-autofirma-2026.md
+  docs/historico/propuesta-autofirma-2026.md
 )
 
 for f in "${p0_files[@]}"; do
