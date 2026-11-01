@@ -142,3 +142,18 @@ Cada punto lleva el comando y el resultado esperado. Se ejecutan en un clon de `
 | Conflictos al traer cambios del oficial | Alta | Media | Registro en `upstream-sync.md` |
 | Notas de release que prometen paquetes que no se publican | Alta | Media | Paso 5 de próximos pasos |
 | Retraso del empaquetado RPM, AppImage y Flatpak | Alta | Baja | No bloquea el núcleo |
+
+---
+
+## Fase 1 — Base sólida (avance 2026-11-01)
+
+- Tests cripto en CI: PR #123 (pendiente de fusión; `make test` incluye core + módulos `afirma-crypto-*`).
+- Umbral JaCoCo afirma-core: 14 % (PR #122, fusionado).
+- SECURITY.md con plazos de respuesta (PR #120, fusionado).
+- Sync con el oficial documentado (PR #121, fusionado).
+- Limpieza de `.archify` (PR #119, fusionado).
+- Releases firmadas: PR #124 (pendiente de fusión; depende de #110).
+- Renovate reordenado (PR #111, pendiente de fusión).
+- Scorecard: PR #112 (pendiente de fusión).
+- Plantillas PR/issue: PR #113 y #117 (pendientes de fusión).
+- Protección de ramas verificada (rulesets 26286141 y 26288299).
