@@ -27,7 +27,7 @@ presence=(
   docs/VALIDATION-TESTS.md
   docs/SETUP.md
   docs/CIUDADANO.md
-  propuesta-autofirma-2026.md
+  docs/historico/propuesta-autofirma-2026.md
   packaging/README.md
   packaging/portal-prueba/index.html
   packaging/flatpak/org.autofirma.Autofirma2026.yml

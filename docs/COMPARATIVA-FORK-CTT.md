@@ -62,4 +62,4 @@ El cliente solo **genera** firmas con tu certificado. La validez jurídica compl
 
 1. `bash scripts/mvp.sh` — construye el JAR, ejecuta vectores F2 y empaqueta si puede.
 2. `make validate` — contrato del repo + tests + humo comunitario.
-3. Detalle ciudadano: [CIUDADANO.md](CIUDADANO.md) · Manifiesto: [propuesta-autofirma-2026.md](../propuesta-autofirma-2026.md).
+3. Detalle ciudadano: [CIUDADANO.md](CIUDADANO.md) · Manifiesto: [propuesta-autofirma-2026.md](historico/propuesta-autofirma-2026.md).
