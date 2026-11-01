@@ -1,0 +1,34 @@
+# Tests excluidos o saltados en CI
+
+Listado de pruebas que no se ejecutan o se saltan en CI, con motivo.
+Generado en T3 de la OT Fase 1.
+
+## Módulos incluidos en `make test`
+
+`afirma-core`, `afirma-core-keystores`, `afirma-core-massive` y todos los `afirma-crypto-*` del reactor (ver `Makefile`, variable `TEST_MODULES`).
+
+## Tests que se saltan en CI (marcados con `@Ignore` o condicionales de entorno)
+
+| Módulo | Test / clase | Motivo |
+|--------|--------------|--------|
+| `afirma-core` | `TestDataDownloader`, `TestHttpConnection`, `TestZipForData` | Requieren red/endpoint HTTP; no disponible en CI sin red. |
+| `afirma-core` | `TestConstants` | Comprobaciones de constantes de build/entorno. |
+| `afirma-core` | `TestHttpConnection` | Red. |
+| `afirma-core` | `XXESecurityTest` (parcial) | Algunos casos dependen del parser JDK. |
+| `afirma-core-keystores` | `TestP` y almacenes DNIe/PKCS#11 | Requieren hardware (DNIe, PKCS#11) o certificados del sistema. |
+| `afirma-crypto-cadestri-client` | `TestCAdES`, `TestCadesTriphase`, `TestTriphaseCountersign` | Requieren servicio trifásico de red. |
+| `afirma-crypto-padestri-client` | `TestPdfTriphase` | Requiere servicio trifásico de red. |
+| `afirma-crypto-xades` | `TestJavaBug8182580` | Depende de bug específico de JDK. |
+
+## Módulos no incluidos en `make test`
+
+| Módulo | Motivo |
+|--------|--------|
+| `afirma-crypto-cipher` (v1) | Sustituido por `afirma-crypto-cipher2`; no es módulo del reactor. |
+| `afirma-crypto-cms-enveloper` | No es módulo del reactor raíz. |
+| `afirma-crypto-jarverifier` | No es módulo del reactor raíz. |
+| `afirma-keystores-*`, `afirma-ui-*`, `afirma-server-*`, `afirma-simple*` | Requieren entorno de escritorio/servidor; se validan en `smoke`/`community`. |
+
+## Certificados en tests
+
+Los tests que necesitan certificado lo generan en el propio test (BouncyCastle/keytool en tiempo de test). No se versionan certificados ni claves reales (regla 6 de la OT).

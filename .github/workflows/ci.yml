@@ -61,7 +61,7 @@ jobs:
           cache: maven
           cache-dependency-path: pom.xml
 
-      - name: afirma-core unit tests
+      - name: unit tests (core + crypto modules)
         run: make test
 
   community:
