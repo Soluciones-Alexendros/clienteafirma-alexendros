@@ -31,8 +31,10 @@ quality: lint
 		echo "shellcheck no instalado; omitido (CI lo instala)"; \
 	fi
 
+TEST_MODULES := afirma-core,afirma-core-keystores,afirma-core-massive,afirma-crypto-batch-client,afirma-crypto-cades,afirma-crypto-cades-multi,afirma-crypto-cadestri-client,afirma-crypto-cipher2,afirma-crypto-cms,afirma-crypto-core-pkcs7,afirma-crypto-core-pkcs7-tsp,afirma-crypto-core-xml,afirma-crypto-odf,afirma-crypto-ooxml,afirma-crypto-padestri-client,afirma-crypto-pdf,afirma-crypto-pdf-common,afirma-crypto-validation,afirma-crypto-xades,afirma-crypto-xadestri-client,afirma-crypto-xmlsignature
+
 test:
-	mvn -B -pl afirma-core test
+	mvn -B -pl $(TEST_MODULES) -am test
 
 test-crypto:
 	cd tests/validation-harness && mvn -B test
