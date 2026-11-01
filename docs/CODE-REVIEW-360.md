@@ -246,4 +246,4 @@ ls .archify/20260930-2117-code-review-360/*/*.html
 | [F4-INVENTARIO-CRIPTO.md](F4-INVENTARIO-CRIPTO.md) | SC/BC, iText, TLS |
 | [F9-INTEGRA-FIRE.md](F9-INTEGRA-FIRE.md) | Frontera servicios |
 | [SECURITY.md](../SECURITY.md) | Canal de aviso |
-| [propuesta-autofirma-2026.md](../propuesta-autofirma-2026.md) | Manifiesto |
+| [propuesta-autofirma-2026.md](historico/propuesta-autofirma-2026.md) | Manifiesto |

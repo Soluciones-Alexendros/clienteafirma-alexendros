@@ -20,7 +20,7 @@
 - Pin de sync upstream: `docs/BASELINE.txt` (`UPSTREAM=ctt-gob-es/clienteafirma`, `BASELINE_COMMIT`).
 - Fachada P0: `make lint` / `make quality` / `make test` / `make test-community` / `make smoke` / `make validate`. Jobs CI: `quality`, `test`, `community`, `build`, `smoke` + `build-baseline` (JAR+F2).
 - MVP operativo: `docs/MVP.md` y `bash scripts/mvp.sh` (evidencia en `dist/MVP-EVIDENCE.txt`).
-- Programa por fases F0–F10; estado en `docs/ESTADO-FASES.md`; manifiesto en `propuesta-autofirma-2026.md`.
+- Programa por fases F0–F10; estado en `docs/ESTADO-FASES.md`; manifiesto en `docs/historico/propuesta-autofirma-2026.md`.
 - SpongyCastle→BouncyCastle: F2 verde en `master` del monorepo; rama histórica `crypto/bouncycastle-jdk18on`; PR upstream `ctt-gob-es/clienteafirma#573` cerrada sin merge; seguimiento en `#572`. `strictSslChecks` va **activado por defecto** (#92); se puede desactivar en Preferencias o con `-DstrictSslChecks=false`.
 - Licencia conservada GPL-2.0+ / EUPL-1.1.
 - Archify: skill en `~/.cursor/skills/archify`; artefactos bajo `.archify/` (suite canónica 5 tipos) con texto visible en español sencillo.

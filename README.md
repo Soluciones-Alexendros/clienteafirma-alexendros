@@ -64,7 +64,7 @@ bash scripts/mvp.sh --skip-build    # si ya tienes afirma-simple/target/autofirm
 make validate                       # contrato del repo + quality + tests + humo
 ```
 
-Manifiesto del programa: [`propuesta-autofirma-2026.md`](propuesta-autofirma-2026.md).
+Manifiesto del programa: [`docs/historico/propuesta-autofirma-2026.md`](docs/historico/propuesta-autofirma-2026.md).
 
 ---
 
