@@ -32,3 +32,13 @@ Generado en T3 de la OT Fase 1.
 ## Certificados en tests
 
 Los tests que necesitan certificado lo generan en el propio test (BouncyCastle/keytool en tiempo de test). No se versionan certificados ni claves reales (regla 6 de la OT).
+
+## Fallos corregidos (no excluidos)
+
+| Módulo | Test | Causa | Arreglo |
+|--------|------|-------|---------|
+| `afirma-crypto-ooxml` | `TestOOXML.testSignature`, `TestOOXML.testCoSignature`, `TestOOXMLVersions.testSignature` | La firma OOXML consultaba la pantalla (número de monitores, resolución y profundidad de color) y fallaba con `HeadlessException` en equipos sin pantalla (CI, servidores). Es un fallo real: también rompería la firma en un servidor. | `OOXMLOfficeObjectHelper` usa valores neutros (1 monitor, 1920x1080, 32 bits) cuando `GraphicsEnvironment.isHeadless()`. |
+
+## Pendiente de verificar
+
+Los módulos `afirma-crypto-validation`, `afirma-crypto-xadestri-client` y `afirma-core-massive` no llegaron a ejecutarse (Maven paró en `afirma-crypto-ooxml`). Si fallan tras el arreglo, se clasifican aquí con su motivo.
