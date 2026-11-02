@@ -4,6 +4,7 @@ import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import es.gob.afirma.core.misc.Platform;
@@ -61,6 +62,7 @@ public final class TestRFC2254CertificateFilter {
 	/** Prueba recursiva por emisor de filtro RFC 2254.
 	 * @throws Exception en cualquier error. */
 	@Test
+	@Ignore("Requiere almacen de claves del sistema (CAPI/Apple/NSS) no disponible en CI")
 	@SuppressWarnings("static-method")
 	public void TestRFC2254CertificateRecursiveFilter() throws Exception {
 		final RFC2254CertificateFilter filter = new RFC2254CertificateFilter(null, "cn=ANF Global Root CA", true);  //$NON-NLS-1$

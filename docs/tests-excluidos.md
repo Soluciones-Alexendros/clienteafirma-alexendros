@@ -19,6 +19,7 @@ Generado en T3 de la OT Fase 1.
 | `afirma-crypto-cadestri-client` | `TestCAdES`, `TestCadesTriphase`, `TestTriphaseCountersign` | Requieren servicio trifásico de red. |
 | `afirma-crypto-padestri-client` | `TestPdfTriphase` | Requiere servicio trifásico de red. |
 | `afirma-crypto-xades` | `TestJavaBug8182580` | Depende de bug específico de JDK. |
+| `afirma-keystores-filters` | `TestRFC2254CertificateFilter.TestRFC2254CertificateRecursiveFilter` | Requiere almacén de claves del sistema (CAPI/Apple/NSS) no disponible en CI; `afirma-keystores-mozilla` no está en el classpath de test. |
 
 ## Módulos no incluidos en `make test`
 
