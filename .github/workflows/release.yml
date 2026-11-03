@@ -138,7 +138,8 @@ jobs:
         run: |
           set -euo pipefail
           bash scripts/f6-package-linux.sh
-          ARCH=x86_64 bash scripts/f6-appimage.sh
+          # appimagetool 13/mksquashfs no admite SOURCE_DATE_EPOCH junto a sus opciones internas.
+          env -u SOURCE_DATE_EPOCH ARCH=x86_64 bash scripts/f6-appimage.sh
 
       - name: Collect and require release artifacts
         run: |

@@ -16,6 +16,8 @@ grep -F 'sudo apt-get install -y xvfb' "$workflow" >/dev/null || fail "falta dis
 ! grep -F -q 'if: env.' "$workflow" || fail "jobs.*.if no admite el contexto env"
 ! grep -F -q '/continuous/' "$workflow" || fail "appimagetool no está fijado"
 grep -F "APPIMAGETOOL_VERSION: '13'" "$workflow" >/dev/null || fail "versión appimagetool ausente"
+grep -F 'env -u SOURCE_DATE_EPOCH ARCH=x86_64 bash scripts/f6-appimage.sh' "$workflow" >/dev/null \
+  || fail "appimagetool 13 es incompatible con SOURCE_DATE_EPOCH global"
 grep -F "APPIMAGETOOL_SHA256: 'df3baf5ca5facbecfc2f3fa6713c29ab9cefa8fd8c1eac5d283b79cab33e4acb'" "$workflow" >/dev/null \
   || fail "SHA-256 appimagetool ausente"
 test -s KEYS || fail "KEYS ausente o vacío"
