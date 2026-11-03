@@ -1,10 +1,8 @@
 name: Interop
 
 on:
+  # Sin filtro de rama base: T3b debe cubrir tambien los PR apilados sobre ramas de tarea.
   pull_request:
-    branches:
-      - master
-      - 'plan/**'
   push:
     branches:
       - master

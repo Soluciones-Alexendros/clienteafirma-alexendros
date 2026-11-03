@@ -11,6 +11,9 @@
  * compatibilidad que T3 puede romper es la negociacion TLS, y eso es lo que se prueba
  * aqui; el canal real se comprueba con openssl en A1 y la firma con certificado real en B.
  *
+ * ALCANCE: la firma completa desde el navegador (dialogo de confirmacion de la GUI) sigue
+ * siendo PRUEBA MANUAL antes de publicar cada version. Este script no la automatiza.
+ *
  * Variables:
  *   INTEROP_CERTS_DIR  directorio con rsa.crt/rsa.key (por defecto /tmp/afirma-interop-certs)
  *   INTEROP_OUT        directorio de artefactos (por defecto interop-local)
