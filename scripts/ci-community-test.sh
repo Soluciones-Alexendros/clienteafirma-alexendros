@@ -77,6 +77,8 @@ bash scripts/ci/check-docs-truth.sh
 ok "documentación contrastada con fuentes"
 python3 scripts/ci/test-release-notes.py
 ok "notas de release derivadas de assets"
+bash scripts/ci/test-release-workflow.sh
+ok "workflow de release separado y verificable"
 
 for job in quality test smoke community; do
   grep -Eq "^[[:space:]]*${job}:" .github/workflows/ci.yml \
