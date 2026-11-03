@@ -17,4 +17,16 @@ echo "OK: new-high fails"
 python3 "$GATE" --sarif "$FIX/baseline.sarif" --baseline "$FIX/baseline.sarif"
 echo "OK: same as baseline passes"
 
+if python3 "$GATE" --sarif "$FIX/does-not-exist.sarif" --baseline "$FIX/baseline.sarif"; then
+  echo "FAIL: missing SARIF should fail" >&2
+  exit 1
+fi
+echo "OK: missing SARIF fails"
+
+if python3 "$GATE" --sarif "$FIX/invalid.sarif" --baseline "$FIX/baseline.sarif"; then
+  echo "FAIL: invalid SARIF should fail" >&2
+  exit 1
+fi
+echo "OK: invalid SARIF fails"
+
 echo "test-semgrep-new-high-gate: all OK"
