@@ -58,16 +58,14 @@ jobs:
         uses: github/codeql-action/analyze@fca7ace96b7d713c7035871441bd52efbe39e27e # v3.28.19
         with:
           category: "/language:${{ matrix.language }}"
+          output: codeql-results
           upload: false
 
       - name: Upload CodeQL SARIF as artifact
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: codeql-results
-          path: |
-            **/results/**/*.sarif
-            **/codeql-*.sarif
-            **/*codeql*.sarif
+          path: codeql-results/
           if-no-files-found: error
           retention-days: 7
 
@@ -98,7 +96,7 @@ jobs:
         run: |
           semgrep scan --config=auto --config=p/ci \
             --sarif --output=semgrep.sarif \
-            --error --max-target-bytes=1000000
+            --max-target-bytes=1000000
 
       - name: Upload Semgrep SARIF to code scanning
         uses: github/codeql-action/upload-sarif@fca7ace96b7d713c7035871441bd52efbe39e27e # v3.28.19

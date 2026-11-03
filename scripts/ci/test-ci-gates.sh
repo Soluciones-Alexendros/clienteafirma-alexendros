@@ -25,5 +25,9 @@ grep -F 'if-no-files-found: error' .github/workflows/codeql-semgrep.yml >/dev/nu
   || fail "los artefactos SARIF no son obligatorios"
 ! grep -F 'if-no-files-found: ignore' .github/workflows/codeql-semgrep.yml >/dev/null \
   || fail "SARIF ausente sigue ignorado"
+grep -F 'output: codeql-results' .github/workflows/codeql-semgrep.yml >/dev/null \
+  || fail "CodeQL no fija un directorio SARIF dentro del workspace"
+! grep -F -- '--error --max-target-bytes' .github/workflows/codeql-semgrep.yml >/dev/null \
+  || fail "el escaneo completo convierte hallazgos ya triados en fallo de herramienta"
 
 echo "test-ci-gates: OK"
