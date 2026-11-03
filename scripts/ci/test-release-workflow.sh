@@ -10,6 +10,7 @@ workflow=.github/workflows/release.yml
 ! grep -F -q -- '-DskipTests' "$workflow" || fail "release omite tests"
 ! grep -F -q 'continue-on-error:' "$workflow" || fail "release tolera errores"
 ! grep -F -q '|| true' "$workflow" || fail "release oculta errores"
+! grep -F -q 'if: env.' "$workflow" || fail "jobs.*.if no admite el contexto env"
 ! grep -F -q '/continuous/' "$workflow" || fail "appimagetool no está fijado"
 grep -F "APPIMAGETOOL_VERSION: '13'" "$workflow" >/dev/null || fail "versión appimagetool ausente"
 grep -F "APPIMAGETOOL_SHA256: 'df3baf5ca5facbecfc2f3fa6713c29ab9cefa8fd8c1eac5d283b79cab33e4acb'" "$workflow" >/dev/null \

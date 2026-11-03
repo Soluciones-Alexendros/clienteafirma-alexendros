@@ -180,7 +180,7 @@ jobs:
 
   sign:
     name: Sign in the protected release environment
-    if: env.DO_PUBLISH == 'true'
+    if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.publish == 'true')
     needs: build
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -226,7 +226,7 @@ jobs:
 
   validate:
     name: Validate signatures and inventory with public KEYS
-    if: env.DO_PUBLISH == 'true'
+    if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.publish == 'true')
     needs: sign
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -290,7 +290,7 @@ jobs:
 
   publish:
     name: Create the verified draft release
-    if: env.DO_PUBLISH == 'true'
+    if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.publish == 'true')
     needs: validate
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -341,7 +341,7 @@ jobs:
 
   dry-run:
     name: Dry-run summary without signing or release
-    if: env.DO_PUBLISH != 'true'
+    if: github.event_name == 'workflow_dispatch' && inputs.publish != 'true'
     needs: build
     runs-on: ubuntu-latest
     timeout-minutes: 5
