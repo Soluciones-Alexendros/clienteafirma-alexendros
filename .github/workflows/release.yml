@@ -212,11 +212,17 @@ jobs:
           printf '%s' "$GPG_PRIVATE_KEY" | gpg --batch --yes --import
 
       - name: Sign every artifact and SHA256SUMS
+        env:
+          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
         run: |
           set -euo pipefail
+          if [[ -z "$GPG_PASSPHRASE" ]]; then
+            echo 'ERROR: GPG_PASSPHRASE is required for non-interactive signing; configure it in the protected release environment.' >&2
+            exit 1
+          fi
           cd release-artifacts
           find . -maxdepth 1 -type f ! -name '*.asc' -print0 | sort -z | while IFS= read -r -d '' file; do
-            gpg --batch --yes --armor --detach-sign --output "$file.asc" "$file"
+            gpg --batch --yes --pinentry-mode loopback --passphrase "$GPG_PASSPHRASE"               --armor --detach-sign --output "$file.asc" "$file"
           done
           originals="$(find . -maxdepth 1 -type f ! -name '*.asc' | wc -l)"
           signatures="$(find . -maxdepth 1 -type f -name '*.asc' | wc -l)"
