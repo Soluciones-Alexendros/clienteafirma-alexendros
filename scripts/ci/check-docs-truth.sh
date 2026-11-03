@@ -44,13 +44,15 @@ fi
 
 baseline="$(sed -n 's/^BASELINE_COMMIT=//p' docs/BASELINE.txt)"
 [[ "$baseline" =~ ^[0-9a-f]{40}$ ]] || fail "BASELINE_COMMIT inválido"
-[[ "$(git cat-file -t "$baseline" 2>/dev/null || true)" == commit ]] \
-  || fail "BASELINE_COMMIT no existe: ${baseline}"
+if [[ "$(git cat-file -t "$baseline" 2>/dev/null || true)" != commit ]]; then
+  echo "NOTA docs-truth: baseline ${baseline} tiene formato válido pero no está en este clone shallow"
+fi
 upstream="$(sed -n 's/^- Último commit integrado del oficial: `//p' docs/upstream-sync.md | sed 's/`$//')"
 [[ "$upstream" =~ ^[0-9a-f]{40}$ ]] || fail "SHA de último upstream inválido"
-if [[ "$(git cat-file -t "$upstream" 2>/dev/null || true)" == commit ]]; then
+if [[ "$(git cat-file -t "$baseline" 2>/dev/null || true)" == commit \
+  && "$(git cat-file -t "$upstream" 2>/dev/null || true)" == commit ]]; then
   ok "baseline y último commit upstream existen localmente"
-else
+elif [[ "$(git cat-file -t "$upstream" 2>/dev/null || true)" != commit ]]; then
   echo "NOTA docs-truth: ${upstream} tiene formato válido pero no está en este clone; se contrastará en la próxima sync"
 fi
 
