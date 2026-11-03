@@ -7,6 +7,7 @@ build on *new* high/error results vs a baseline SARIF (or empty baseline).
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import sys
 from pathlib import Path
@@ -27,16 +28,34 @@ def is_blocking(result: dict) -> bool:
 
 
 def key(result: dict) -> tuple:
+    """Identify a finding by rule, path and content, never by line number."""
     locs = result.get("locations") or []
-    path = line = None
+    path = None
+    region = {}
     if locs:
         phys = (locs[0].get("physicalLocation") or {})
         art = phys.get("artifactLocation") or {}
-        reg = phys.get("region") or {}
+        region = phys.get("region") or {}
         path = art.get("uri")
-        line = reg.get("startLine")
-    rule = result.get("ruleId")
-    return (rule, path, line)
+
+    snippet = (region.get("snippet") or {}).get("text")
+    if snippet is not None:
+        content = {"kind": "snippet", "value": snippet}
+    else:
+        fingerprints = result.get("partialFingerprints") or result.get("fingerprints") or {}
+        match_based = next(
+            (fingerprints[name] for name in sorted(fingerprints) if name.startswith("matchBasedId")),
+            None,
+        )
+        if not match_based:
+            raise ValueError(
+                f"Blocking result {result.get('ruleId')} at {path} has no content fingerprint"
+            )
+        content = {"kind": "matchBasedId", "value": match_based}
+
+    canonical = json.dumps(content, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    digest = hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+    return (result.get("ruleId"), path, digest)
 
 
 def load_results(path: Path) -> list:
@@ -63,7 +82,7 @@ def main() -> int:
     current = load_results(args.sarif)
     baseline_keys = set()
     if args.baseline:
-        baseline_keys = {key(r) for r in load_results(args.baseline)}
+        baseline_keys = {key(r) for r in load_results(args.baseline) if is_blocking(r)}
 
     blockers = []
     for r in current:
@@ -77,7 +96,7 @@ def main() -> int:
     if blockers:
         print("New high/error Semgrep findings (blocking):", file=sys.stderr)
         for b in blockers:
-            print(f"  {b[0]} @ {b[1]}:{b[2]}", file=sys.stderr)
+            print(f"  {b[0]} @ {b[1]} (content {b[2][:12]})", file=sys.stderr)
         return 1
     print("semgrep-new-high-gate: OK (no new high/error findings)")
     return 0
