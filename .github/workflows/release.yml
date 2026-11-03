@@ -67,12 +67,17 @@ jobs:
       - name: Run complete validation on the checked-out SHA
         run: make validate
 
+      - name: Install a virtual display for UI tests
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb
+
       - name: Build all release modules with tests
         run: |
           set -euo pipefail
           source_date_epoch="$(git log -1 --format=%ct)"
           echo "SOURCE_DATE_EPOCH=$source_date_epoch" >> "$GITHUB_ENV"
-          mvn -B clean install -Denv=install \
+          xvfb-run -a mvn -B clean install -Denv=install \
             -Dproject.build.outputTimestamp="$source_date_epoch" \
             -pl '!afirma-server-triphase-signer,!afirma-signature-retriever,!afirma-signature-storage' -am
 
@@ -89,7 +94,7 @@ jobs:
           git worktree add "$work/worktree1" HEAD
           (
             cd "$work/worktree1"
-            mvn -B clean package -Denv=install \
+            xvfb-run -a mvn -B clean package -Denv=install \
               -Dproject.build.outputTimestamp="$SOURCE_DATE_EPOCH" \
               -pl afirma-simple -am
             cp afirma-simple/target/autofirma.jar "$work/build1.jar"
@@ -97,7 +102,7 @@ jobs:
           git worktree add "$work/worktree2" HEAD
           (
             cd "$work/worktree2"
-            mvn -B clean package -Denv=install \
+            xvfb-run -a mvn -B clean package -Denv=install \
               -Dproject.build.outputTimestamp="$SOURCE_DATE_EPOCH" \
               -pl afirma-simple -am
             cp afirma-simple/target/autofirma.jar "$work/build2.jar"

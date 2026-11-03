@@ -8,6 +8,9 @@ fail() { echo "FAIL release-workflow: $*" >&2; exit 1; }
 
 workflow=.github/workflows/release.yml
 ! grep -F -q -- '-DskipTests' "$workflow" || fail "release omite tests"
+grep -F 'sudo apt-get install -y xvfb' "$workflow" >/dev/null || fail "falta display virtual para tests UI"
+[[ "$(grep -F -c 'xvfb-run -a mvn -B clean' "$workflow")" -eq 3 ]] \
+  || fail "los tres builds con tests deben usar Xvfb"
 ! grep -F -q 'continue-on-error:' "$workflow" || fail "release tolera errores"
 ! grep -F -q '|| true' "$workflow" || fail "release oculta errores"
 ! grep -F -q 'if: env.' "$workflow" || fail "jobs.*.if no admite el contexto env"
