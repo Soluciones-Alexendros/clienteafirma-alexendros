@@ -129,7 +129,15 @@ Ninguna de las hipótesis H4–H6 se presenta aquí como vulnerabilidad verifica
 ```bash
 test -f docs/security/ASVS-L2.md && grep -c '→ Sink' docs/security/ASVS-L2.md   # >= 4 flujos
 make validate
+make interop-selftest   # T3b: scripts de interoperabilidad (sin red ni docker)
 ```
+
+El job `interop` (`.github/workflows/interop.yml`, tarea T3b) comprueba en cada PR el
+endurecimiento TLS del canal local, la compatibilidad de Firefox, Chromium y Edge con las
+suites habilitadas, y la validación con EU DSS de una firma hecha con certificado sintético.
+
+La firma completa **desde el navegador** (diálogo de confirmación de la GUI de Autofirma) no se
+automatiza: sigue siendo prueba manual antes de publicar cada versión (`make interop-local`).
 
 La matriz debe actualizarse en la misma tarea que cierre cada brecha: un cambio de estado sin
 prueba asociada es un error de este documento.
