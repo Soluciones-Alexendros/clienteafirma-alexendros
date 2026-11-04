@@ -21,7 +21,7 @@ help:
 	  'make remediation360    verify post-audit mitigations' \
 	  'make security-material detecta PFX operativos y contraseñas literales' \
 	  'make interop-ci        T3b A: canal TLS + navegadores + DSS (requiere docker/playwright)' \
-	  'make interop-local     T3b B: interop con tu .p12 real (make interop-local P12=<ruta>)'
+	  'make interop-local     T3b B: interop con tu .p12 real (por defecto certificadoFNMT.p12)'
 
 lint:
 	bash scripts/ci/check-contract.sh
@@ -89,6 +89,6 @@ interop-ci:
 		|| echo "Playwright no instalado; A2 se ejecuta en CI"
 
 # T3b · interoperabilidad local con el .p12 del operador (parte B)
+# La contrasena se pide por TTY; nunca se pasa por argumento ni se escribe en disco.
 interop-local:
-	@test -n "$(P12)" || { echo "uso: make interop-local P12=<ruta.p12>" >&2; exit 2; }
-	bash scripts/interop/interop-local.sh "$(P12)"
+	bash scripts/interop/prueba-local.sh $(if $(P12),"$(P12)",)

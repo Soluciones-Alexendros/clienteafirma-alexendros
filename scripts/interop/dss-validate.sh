@@ -65,8 +65,9 @@ B64="$(base64 -w0 "$SIGNED")"
 CA_B64="$(openssl x509 -in "$CA_FILE" -outform DER 2>/dev/null | base64 -w0)"
 [ -n "$CA_B64" ] || fail "no se pudo convertir la CA a DER/base64: $CA_FILE"
 
-REPORT="$OUT/dss-report.json"
-REQUEST="$OUT/dss-request.json"
+BASE="$(basename "$SIGNED")"
+REPORT="$OUT/dss-report-${BASE}.json"
+REQUEST="$OUT/dss-request-${BASE}.json"
 
 # Sin registrar contenido: solo hashes en consola.
 echo "[dss] firma sha256=$(sha256sum "$SIGNED" | cut -d' ' -f1) ca_sha256=$(sha256sum "$CA_FILE" | cut -d' ' -f1)"

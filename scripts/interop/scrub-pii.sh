@@ -48,6 +48,7 @@ subject = sys.argv[1]
 targets = sys.argv[2:]
 
 tokens = set()
+exact_tokens = set()
 tokens.add(subject.strip())
 for chunk in re.split(r"[,/]", subject):
     chunk = chunk.strip()
@@ -55,8 +56,10 @@ for chunk in re.split(r"[,/]", subject):
         cn = chunk[3:].strip()
         tokens.add(cn)
         for part in cn.split():
-            if len(part) > 2:
-                tokens.add(part)
+            # Solo palabras con grafia exacta: evita destrozar terminos tecnicos
+            # (una "rsa" minuscula no debe tocar ECDHE-RSA) ni rutas del sistema.
+            if len(part) > 3:
+                exact_tokens.add(part)
 
 def scrub(path):
     try:
@@ -69,6 +72,9 @@ def scrub(path):
     for token in sorted(tokens, key=len, reverse=True):
         if token:
             text = re.sub(re.escape(token), "<TITULAR>", text, flags=re.IGNORECASE)
+    for token in sorted(exact_tokens, key=len, reverse=True):
+        if token:
+            text = re.sub(r"\b" + re.escape(token) + r"\b", "<TITULAR>", text)
     if text != original:
         with open(path, "w", encoding="utf-8") as fh:
             fh.write(text)

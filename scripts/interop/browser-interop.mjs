@@ -51,6 +51,7 @@ const PAGE = `<!doctype html><meta charset="utf-8"><title>interop</title>
 <body><pre id="r">pendiente</pre></body>`;
 
 async function startMirror() {
+  const negotiated = [];
   const cert = await readFile(path.join(CERTS, 'rsa.crt'));
   const key = await readFile(path.join(CERTS, 'rsa.key'));
   // INTEROP_SELFTEST=1 configura el espejo en modo regresion (TLS 1.0 y suites antiguas):
@@ -61,9 +62,12 @@ async function startMirror() {
     : { cert, key, minVersion: 'TLSv1.2', maxVersion: 'TLSv1.2', ciphers: SUITES };
   const server = https.createServer(tlsOptions,
     (req, res) => { res.writeHead(200, { 'content-type': 'text/plain' }); res.end('interop-mirror-ok'); });
+  server.on('secureConnection', (socket) => {
+    negotiated.push({ protocol: socket.getProtocol(), cipher: socket.getCipher()?.name ?? null });
+  });
   await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
   const { port } = server.address();
-  return { server, url: `https://127.0.0.1:${port}/` };
+  return { server, url: `https://127.0.0.1:${port}/`, negotiated };
 }
 
 // Pagina de prueba servida desde el mismo espacio de direcciones (127.0.0.1) para que
@@ -123,10 +127,20 @@ async function main() {
       : { launcher: chromium, channel: name === 'msedge' ? 'msedge' : undefined };
     try {
       const res = await probe(spec.launcher, spec.channel, target, pageServer.url);
-      const entry = { browser: name, handshake: res.ok, httpStatus: res.status ?? null, error: res.error ?? null, target };
+      const last = mirror ? mirror.negotiated[mirror.negotiated.length - 1] ?? {} : {};
+      const entry = {
+        browser: name,
+        handshake: res.ok,
+        httpStatus: res.status ?? null,
+        error: res.error ?? null,
+        target,
+        protocol: last.protocol ?? null,
+        cipher: last.cipher ?? null,
+      };
       if (!res.ok) failures += 1;
       summary.push(entry);
-      console.log(`${res.ok ? 'OK' : 'FAIL'}: ${name} ${res.error ?? 'HTTP ' + res.status}`);
+      console.log(`${res.ok ? 'OK' : 'FAIL'}: ${name} ${res.error ?? 'HTTP ' + res.status}` +
+        (entry.protocol ? ` [${entry.protocol} ${entry.cipher}]` : ''));
     } catch (e) {
       failures += 1;
       summary.push({ browser: name, handshake: false, error: String(e), target });
