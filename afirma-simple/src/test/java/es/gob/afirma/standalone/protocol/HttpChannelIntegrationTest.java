@@ -73,6 +73,7 @@ public class HttpChannelIntegrationTest {
 		LocalChannelTestSupport.restoreConfiguration();
 		this.clock = new MutableClock(1000000L);
 		this.validator = new WebSocketSessionValidator(this.clock, 5000L);
+		// nosemgrep: java.lang.security.audit.crypto.unencrypted-socket.unencrypted-socket -- canal local loopback bajo prueba, test
 		this.serverSocket = new ServerSocket(0, 10, InetAddress.getByName("127.0.0.1")); //$NON-NLS-1$
 		this.timer = new Timer(600000, evt -> { /* inactividad irrelevante en la prueba */ });
 		this.timer.setRepeats(false);

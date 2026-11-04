@@ -34,6 +34,7 @@ final class LocalChannelTestSupport {
 
 	/** Devuelve un puerto libre de la interfaz local. */
 	static int freePort() throws IOException {
+		// nosemgrep: java.lang.security.audit.crypto.unencrypted-socket.unencrypted-socket -- canal local loopback bajo prueba, test
 		try (ServerSocket socket = new ServerSocket(0, 1, InetAddress.getByName("127.0.0.1"))) { //$NON-NLS-1$
 			return socket.getLocalPort();
 		}
@@ -67,6 +68,7 @@ final class LocalChannelTestSupport {
 
 	/** Envia una peticion en crudo al puerto indicado y devuelve la respuesta completa. */
 	static String sendRaw(final int port, final String request) throws IOException {
+		// nosemgrep: java.lang.security.audit.crypto.unencrypted-socket.unencrypted-socket -- canal local loopback bajo prueba, test
 		try (Socket socket = new Socket(InetAddress.getByName("127.0.0.1"), port)) { //$NON-NLS-1$
 			socket.setSoTimeout(15000);
 			final OutputStream out = socket.getOutputStream();
