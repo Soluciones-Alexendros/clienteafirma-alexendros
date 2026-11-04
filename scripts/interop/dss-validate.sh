@@ -95,7 +95,7 @@ HTTP_CODE="$(curl -s -o "$REPORT" -w '%{http_code}' \
 	-X POST "$ENDPOINT" \
 	-H 'Content-Type: application/json' \
 	-H 'Accept: application/json' \
-	--data-binary @/tmp/dss-request.json)"
+	--data-binary "@$REQUEST")"
 
 if [ "$HTTP_CODE" != "200" ]; then
 	echo "[dss] peticion enviada:" >&2
