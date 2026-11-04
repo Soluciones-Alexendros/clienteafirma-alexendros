@@ -99,7 +99,6 @@ jobs:
             -alias interop-rsa -format cades
 
       - name: Log in to GHCR for the DSS image
-        if: vars.DSS_IMAGE != ''
         run: |
           set -euo pipefail
           echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
@@ -115,7 +114,7 @@ jobs:
           DSS_URL: ${{ vars.DSS_URL }}
           # TEMPORAL (T3b · A4): digest fijado para probar la validacion real mientras se
           # valida el circuito. Se retira en cuanto A4 dependa solo de vars.DSS_IMAGE.
-          DSS_IMAGE: ghcr.io/soluciones-alexendros/dss-demo-webapp@sha256:e924c608888a21ef6c45d03aed96b983f4b53a063d4fbe7a2aa6fcc42577a744
+          DSS_IMAGE: ghcr.io/soluciones-alexendros/interop-dss-validator@sha256:c9d2c6084b1782e8d9120c7dddfe260299daf4c876a91e8173982344239037c0
         run: |
           set -euo pipefail
           if [ -z "${DSS_IMAGE:-}" ] && [ -z "${DSS_URL:-}" ]; then
