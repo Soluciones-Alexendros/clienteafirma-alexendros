@@ -96,7 +96,7 @@ jobs:
             -password "$(cat "$INTEROP_CERTS_DIR/p12pass")" \
             -alias interop-rsa -format cades
           docker run -d --name dss-demo -p 8080:8080 nowina/dss-demo-webapp:latest
-          for i in $(seq 1 60); do
+          for _ in $(seq 1 60); do
             curl -sf -o /dev/null http://127.0.0.1:8080/ && break
             sleep 2
           done
