@@ -26,6 +26,7 @@ import java.math.BigInteger;
 import java.net.InetAddress;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.attribute.PosixFilePermission;
 import java.nio.file.attribute.PosixFilePermissions;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
@@ -39,6 +40,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.Date;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -199,7 +201,13 @@ public class LocalKeyStoreSecretsTest {
 		final File keyStore = createKeyStore(appDir, secret);
 		final File secretFile = LocalKeyStoreSecrets.getSecretFile(keyStore);
 		Files.write(secretFile.toPath(), secret.getBytes(StandardCharsets.US_ASCII));
-		Files.setPosixFilePermissions(secretFile.toPath(), PosixFilePermissions.fromString("rw-r--r--")); //$NON-NLS-1$
+		// Permisos abiertos a proposito: es el caso que la aplicacion debe corregir
+		Files.setPosixFilePermissions(secretFile.toPath(), EnumSet.of(
+			PosixFilePermission.OWNER_READ,
+			PosixFilePermission.OWNER_WRITE,
+			PosixFilePermission.GROUP_READ,
+			PosixFilePermission.OTHERS_READ
+		));
 
 		final char[] password = LocalKeyStoreSecrets.resolvePassword(keyStore);
 		try {
