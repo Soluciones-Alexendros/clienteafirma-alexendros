@@ -12,6 +12,7 @@ import java.util.logging.Logger;
 import javax.swing.Timer;
 
 import es.gob.afirma.core.ErrorCode;
+import es.gob.afirma.core.misc.protocol.WebSocketSessionValidator;
 import es.gob.afirma.core.misc.Base64;
 import es.gob.afirma.core.misc.protocol.ProtocolVersion;
 import es.gob.afirma.standalone.SimpleErrorCode;
@@ -130,7 +131,7 @@ class CommandProcessorThread extends Thread {
 				LOGGER.warning("Se ha recibido una peticion vacia"); //$NON-NLS-1$
 			}
 			else {
-				LOGGER.fine("Peticion HTTP recibida:\n" + httpRequest); //$NON-NLS-1$
+				LOGGER.fine("Peticion HTTP recibida"); //$NON-NLS-1$
 				processCommand(httpRequest, this.localSocket);
 
 			}
@@ -507,7 +508,6 @@ class CommandProcessorThread extends Thread {
 		sb.append("Pragma: no-cache\n"); //$NON-NLS-1$
 		sb.append("Server: Cliente @firma\n"); //$NON-NLS-1$
 		sb.append("Content-Type: text/html; charset=utf-8\n"); //$NON-NLS-1$
-		sb.append("Access-Control-Allow-Origin: *\n"); //$NON-NLS-1$
 		sb.append('\n');
 		if (response != null) {
 			sb.append(Base64.encode(response.getBytes(StandardCharsets.UTF_8), true));
@@ -630,8 +630,22 @@ class CommandProcessorThread extends Thread {
 	 * @param requestSessionId Identificador de sesi&oacute;n enviado en la petici&oacute;n.
 	 * @throws IllegalArgumentException Cuando el identificador no sea correcto. */
 	private void checkIdSession (final String requestSessionId) throws IllegalArgumentException {
-		// se esperaba un idSession y no se ha recibido
-		if (this.idSession != null && !this.idSession.equals(requestSessionId)) {
+		final boolean strict = Boolean.getBoolean("strictWebSocketSession"); //$NON-NLS-1$
+		if (strict) {
+			if (this.idSession == null || this.idSession.isEmpty()) {
+				throw new IllegalArgumentException("No se ha configurado un idSession para la sesion."); //$NON-NLS-1$
+			}
+			if (requestSessionId == null || requestSessionId.isEmpty()) {
+				throw new IllegalArgumentException("No se ha recibido el idSession esperado."); //$NON-NLS-1$
+			}
+			if (!this.idSession.equals(requestSessionId)) {
+				throw new IllegalArgumentException("No se ha recibido el idSession esperado."); //$NON-NLS-1$
+			}
+			if (!WebSocketSessionValidator.isValidSessionId(requestSessionId)) {
+				throw new IllegalArgumentException("No se ha recibido el idSession esperado."); //$NON-NLS-1$
+			}
+		}
+		else if (this.idSession != null && !this.idSession.equals(requestSessionId)) {
 			throw new IllegalArgumentException("No se ha recibido el idSession esperado."); //$NON-NLS-1$
 		}
 	}

@@ -16,6 +16,7 @@ import org.java_websocket.WebSocket;
 
 import es.gob.afirma.core.ErrorCode;
 import es.gob.afirma.core.misc.protocol.ProtocolVersion;
+import es.gob.afirma.core.misc.protocol.WebSocketOriginValidator;
 import es.gob.afirma.standalone.SimpleErrorCode;
 
 /**
@@ -58,6 +59,22 @@ public final class AfirmaWebSocketServerV4Sup extends AfirmaWebSocketServer {
 	public AfirmaWebSocketServerV4Sup(final int port, final String sessionId, final ProtocolVersion protocol) {
 		super(port, sessionId);
 		this.protocol = protocol;
+	}
+
+	@Override
+	public void onOpen(final WebSocket ws, final org.java_websocket.handshake.ClientHandshake handshake) {
+		super.onOpen(ws, handshake);
+		final String origin = handshake.getFieldValue("Origin"); //$NON-NLS-1$
+		final boolean strict = Boolean.getBoolean("strictWebSocketSession"); //$NON-NLS-1$
+		final String allowed = System.getProperty("websocket.allowedOrigins", "*"); //$NON-NLS-1$ //$NON-NLS-2$
+		if (!WebSocketOriginValidator.isAllowed(origin, allowed, strict)) {
+			LOGGER.warning("Origen de websocket no permitido (rechazado)"); //$NON-NLS-1$
+			ws.close(org.java_websocket.framing.CloseFrame.POLICY_VALIDATION, "Origin no permitido"); //$NON-NLS-1$
+			return;
+		}
+		if (origin != null && !origin.trim().isEmpty() && !WebSocketOriginValidator.isAllowed(origin, allowed, true)) {
+			LOGGER.warning("Origen de websocket no reconocido (modo permisivo)"); //$NON-NLS-1$
+		}
 	}
 
 	@Override

@@ -263,3 +263,12 @@ automatiza: sigue siendo prueba manual antes de publicar cada versión (`make in
 
 La matriz debe actualizarse en la misma tarea que cierre cada brecha: un cambio de estado sin
 prueba asociada es un error de este documento.
+
+## §6.3 · Sesión del websocket local (T8)
+
+Con `strictWebSocketSession=false` (por defecto) la brecha H6 sigue abierta en instalaciones
+normales (riesgo residual): idsession no se exige y el origen del websocket no se valida. Activarlo por
+defecto será una tarea propia cuando exista un servidor que emita idsession aleatorio v1; debe aparecer
+en el informe de T20. Con `strictWebSocketSession=true` (o `-DstrictWebSocketSession=true`) se exige
+idsession válido, aleatorio y de un solo uso, y se valida el `Origin` contra la lista configurable
+(`-Dwebsocket.allowedOrigins=...`); los orígenes desconocidos se rechazan por defecto con aviso.

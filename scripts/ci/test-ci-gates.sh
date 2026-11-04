@@ -118,3 +118,13 @@ grep -F 'strictTriphaseToken' "$TOKEN_DIR/TriphaseTokenValidator.java" >/dev/nul
   || fail "el token trifasico no es activable por preferencia"
 
 echo "test-ci-gates: T7 OK"
+
+# T8: idsession y origen del websocket local.
+! grep -F 'Access-Control-Allow-Origin: *' afirma-simple/src/main/java/es/gob/afirma/standalone/protocol/CommandProcessorThread.java >/dev/null \
+  || fail "CommandProcessorThread sigue enviando Access-Control-Allow-Origin: *"
+grep -F 'WebSocketOriginValidator' afirma-simple/src/main/java/es/gob/afirma/standalone/protocol/AfirmaWebSocketServerV4Sup.java >/dev/null \
+  || fail "AfirmaWebSocketServerV4Sup no valida el Origin del websocket"
+grep -F 'strictWebSocketSession' afirma-simple/src/main/java/es/gob/afirma/standalone/protocol/CommandProcessorThread.java >/dev/null \
+  || fail "CommandProcessorThread no respeta strictWebSocketSession"
+
+echo "test-ci-gates: T8 OK"
