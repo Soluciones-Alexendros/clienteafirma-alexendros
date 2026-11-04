@@ -15,7 +15,9 @@ set -euo pipefail
 SIGNED="${1:-}"
 CA_FILE="${2:-}"
 DSS_URL="${DSS_URL:-http://127.0.0.1:8080}"
-DSS_IMAGE="${DSS_IMAGE:-nowina/dss-demo-webapp:latest}"
+# No se inventa una imagen: no existe publicacion oficial de la demo webapp de DSS.
+# Hay que indicarla por entorno (DSS_IMAGE) o apuntar a una instancia ya levantada (DSS_URL).
+DSS_IMAGE="${DSS_IMAGE:-}"
 OUT="${INTEROP_OUT:-interop-local}"
 
 fail() { echo "FAIL: $*" >&2; exit 1; }
@@ -38,6 +40,7 @@ trap cleanup EXIT
 
 if ! curl -sf -o /dev/null "$DSS_URL/" 2>/dev/null; then
 	command -v docker >/dev/null || fail "DSS no responde en $DSS_URL y no hay docker disponible"
+	[ -n "$DSS_IMAGE" ] || fail "no hay DSS accesible en $DSS_URL. Indica DSS_URL (instancia existente) o DSS_IMAGE (imagen de la demo webapp). No existe imagen oficial publicada de DSS: ver docs/security/INTEROP-DSS.md"
 	echo "[dss] levantando $DSS_IMAGE"
 	started_container="$(docker run -d -p 8080:8080 "$DSS_IMAGE")"
 	for _ in $(seq 1 60); do

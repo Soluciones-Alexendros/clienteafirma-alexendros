@@ -87,6 +87,10 @@ jobs:
         env:
           INTEROP_OUT: ${{ runner.temp }}/interop-out
           INTEROP_CERTS_DIR: ${{ runner.temp }}/afirma-interop-certs
+          DSS_URL: ${{ vars.DSS_URL }}
+          DSS_IMAGE: ${{ vars.DSS_IMAGE }}
+          DSS_TRUSTSTORE: ${{ vars.DSS_TRUSTSTORE }}
+          DSS_TRUSTSTORE_PASS: ${{ secrets.DSS_TRUSTSTORE_PASS }}
         run: |
           set -euo pipefail
           mkdir -p "$INTEROP_OUT"
@@ -97,11 +101,6 @@ jobs:
             -store "pkcs12:$INTEROP_CERTS_DIR/rsa.p12" \
             -password "$(cat "$INTEROP_CERTS_DIR/p12pass")" \
             -alias interop-rsa -format cades
-          docker run -d --name dss-demo -p 8080:8080 nowina/dss-demo-webapp:latest
-          for _ in $(seq 1 60); do
-            curl -sf -o /dev/null http://127.0.0.1:8080/ && break
-            sleep 2
-          done
           bash scripts/interop/dss-validate.sh "$INTEROP_OUT/firma.csig" "$INTEROP_CERTS_DIR/ca.crt"
 
       - name: C · Repository hygiene (no PKCS#12 committed)
