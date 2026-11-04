@@ -1,7 +1,8 @@
 # Interoperabilidad con EU DSS (T3b · A4)
 
-Estado: **bloqueado por despliegue**. La validación DSS está implementada y se ejecuta en cada
-run, pero necesita una instancia de la demo webapp de DSS que hoy no está disponible en el CI.
+Estado: **imagen propia en construcción**. La validación DSS está implementada y se ejecuta en
+cada run. La imagen de la demo webapp la construye este repositorio desde la versión fijada de
+DSS y se publica en GHCR; mientras no exista la primera imagen, el paso A4 va en **modo aviso**.
 
 ## Qué comprueba
 
@@ -28,23 +29,41 @@ Si no se cumple, el job falla. **No se desactiva DSS ni se marca el paso como om
 DSS se distribuye como *bundle* descargable (zip/tar.gz con Tomcat) o como código fuente; no hay
 imagen publicada ni artefactos en un repositorio Maven accesible.
 
-## Cómo desbloquearlo (elige una)
+## Solución adoptada (Arquitecto, 2026-11-04)
 
-1. **Instancia propia** ya levantada (recomendado para no alargar el job):
-   definir la variable de repositorio `DSS_URL` (por ejemplo `http://dss.interno:8080`) y, si hace
-   falta confianza, `DSS_TRUSTSTORE` + el secreto `DSS_TRUSTSTORE_PASS`.
-2. **Imagen propia** de la demo webapp: publicarla en el registro de la organización y definir
-   `vars.DSS_IMAGE`. El script la levanta en el puerto 8080 del runner.
-3. **Construir DSS desde fuente** en un job aparte (no por PR): clonar `esig/dss` en el tag fijado,
-   `mvn -P jar -pl dss-demo-webapp -am package -DskipTests`, arrancar el JAR y apuntar `DSS_URL`.
-   Coste estimado: 10–20 min y cientos de MB de dependencias; razonable en un job nocturno.
+La demo webapp se publica como imagen propia desde este repositorio:
 
-Mientras no exista ninguna de las tres, el job `interop` queda **rojo en el paso A4** a propósito:
-es la señal correcta, no un fallo a silenciar.
+- **Workflow:** `.github/workflows/dss-image.yml` (semanal, lunes 03:00 UTC, y `workflow_dispatch`).
+- **Origen fijado por tag:** `esig/dss-demonstrations` en la versión `DSS_VERSION` (`6.5.1`); el
+  commit upstream queda en las etiquetas de la imagen. La demo webapp **no** está en `esig/dss`
+  desde la serie 6.x: vive en `esig/dss-demonstrations`.
+- **Construcción:** Dockerfile del propio upstream (Tomcat + WAR), sin parches nuestros.
+- **Publicación:** `ghcr.io/soluciones-alexendros/dss-demo-webapp:<versión>` y `:latest`, con
+  `actions/attest-build-provenance` (procedencia verificable).
+- **Consumo:** `interop` usa la variable de repositorio `DSS_IMAGE` **con el digest**, en la forma
+  `ghcr.io/soluciones-alexendros/dss-demo-webapp@sha256:<digest>`. El digest lo imprime el propio
+  workflow en su resumen.
+
+## Modo aviso temporal y condición de salida
+
+Mientras `vars.DSS_IMAGE` esté vacía, el paso A4 no bloquea el PR:
+
+```yaml
+continue-on-error: ${{ vars.DSS_IMAGE == '' }}
+```
+
+- **Condición de salida:** en cuanto exista la primera imagen publicada y `vars.DSS_IMAGE` tenga
+  el digest, la expresión pasa a `false` y A4 vuelve a ser **bloqueante** sin tocar el workflow.
+- El aviso se emite como anotación `::warning` en el run y consta en este documento.
+- A3 (firma sintética) es un paso independiente: su resultado nunca queda oculto por A4.
 
 ## Confianza de la CA de prueba
 
 La CA sintética del run no está en el truststore de DSS. Para obtener `TOTAL_PASSED` hay que
-importarla (`keytool -importcert` sobre el truststore de DSS, o la ruta que indique la instancia).
-Sin ese paso, DSS devuelve `INDETERMINATE` con causa `NO_TRUST_ANCHOR`, lo cual **no** es un
-resultado válido para este gate.
+importarla (`keytool -importcert` sobre el truststore de DSS) o servírsela por la ruta que admita
+la instancia. Sin ese paso, DSS devuelve `INDETERMINATE` con causa `NO_TRUST_ANCHOR`, que **no** es
+un resultado válido para este gate.
+
+Variables implicadas: `DSS_TRUSTSTORE` (ruta del truststore dentro del contenedor) y el secreto
+`DSS_TRUSTSTORE_PASS`. Si el primer run con imagen real devuelve `NO_TRUST_ANCHOR`, el ajuste
+pendiente es el punto de montaje/importación del truststore, no el resultado esperado.

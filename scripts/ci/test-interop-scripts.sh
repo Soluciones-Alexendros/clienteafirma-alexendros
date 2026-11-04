@@ -67,4 +67,14 @@ count="$(printf '%s\n' "$suites" | wc -l | tr -d ' ')"
 echo "[test] $count suites TLS declaradas en el canal local"
 ok "configuracion TLS del canal local sin protocolos ni suites obsoletas"
 
+# 5. Workflows de interoperabilidad: DSS por tag fijado y A4 en aviso mientras no haya imagen.
+WF_IMAGE="$ROOT/.github/workflows/dss-image.yml"
+WF_INTEROP="$ROOT/.github/workflows/interop.yml"
+[ -f "$WF_IMAGE" ] || fail "falta .github/workflows/dss-image.yml"
+grep -q "DSS_VERSION: '6" "$WF_IMAGE" || fail "dss-image.yml no fija DSS_VERSION"
+grep -q "attest-build-provenance" "$WF_IMAGE" || fail "dss-image.yml no attesta la procedencia"
+grep -q "continue-on-error: \${{ vars.DSS_IMAGE == '' }}" "$WF_INTEROP" \
+	|| fail "A4 no esta en modo aviso condicionado a DSS_IMAGE"
+ok "workflows: DSS fijado por version, atestado y A4 en aviso hasta la primera imagen"
+
 echo "test-interop-scripts: OK"

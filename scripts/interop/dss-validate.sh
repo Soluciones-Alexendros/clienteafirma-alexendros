@@ -41,6 +41,10 @@ trap cleanup EXIT
 if ! curl -sf -o /dev/null "$DSS_URL/" 2>/dev/null; then
 	command -v docker >/dev/null || fail "DSS no responde en $DSS_URL y no hay docker disponible"
 	[ -n "$DSS_IMAGE" ] || fail "no hay DSS accesible en $DSS_URL. Indica DSS_URL (instancia existente) o DSS_IMAGE (imagen de la demo webapp). No existe imagen oficial publicada de DSS: ver docs/security/INTEROP-DSS.md"
+	case "$DSS_IMAGE" in
+		*@sha256:*) : ;;
+		*) echo "[dss] AVISO: DSS_IMAGE no esta fijada por digest (@sha256:...); se recomienda el digest" >&2 ;;
+	esac
 	echo "[dss] levantando $DSS_IMAGE"
 	started_container="$(docker run -d -p 8080:8080 "$DSS_IMAGE")"
 	for _ in $(seq 1 60); do

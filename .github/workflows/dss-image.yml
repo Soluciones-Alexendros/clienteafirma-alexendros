@@ -1,0 +1,117 @@
+name: DSS image
+
+# Construye la demo webapp de EU DSS desde una version fijada y la publica como imagen
+# en GHCR. La usa el job `interop` (T3b · A4) como servicio de validacion.
+#
+# Origen: esig/dss-demonstrations (la demo webapp no esta en esig/dss desde 6.x).
+# Version fijada por tag: DSS_VERSION. La imagen se publica por digest; `interop` la
+# consume con vars.DSS_IMAGE = ghcr.io/<owner>/dss-demo-webapp@sha256:...
+
+on:
+  schedule:
+    - cron: '0 3 * * 1'
+  workflow_dispatch:
+    inputs:
+      dss_version:
+        description: 'Tag de esig/dss-demonstrations (por defecto, DSS_VERSION del workflow)'
+        required: false
+        type: string
+
+permissions: {}
+
+concurrency:
+  group: dss-image
+  cancel-in-progress: false
+
+env:
+  DSS_VERSION: '6.5.1'
+  IMAGE_NAME: dss-demo-webapp
+  SOURCE_REPO: https://github.com/esig/dss-demonstrations
+
+jobs:
+  build:
+    name: Build and publish DSS demo webapp
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+      attestations: write
+
+    steps:
+      - name: Resolve version
+        id: version
+        run: |
+          set -euo pipefail
+          version="${{ inputs.dss_version }}"
+          echo "version=${version:-$DSS_VERSION}" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout esig/dss-demonstrations at the pinned tag
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          repository: esig/dss-demonstrations
+          ref: ${{ steps.version.outputs.version }}
+          path: dss-demonstrations
+          persist-credentials: false
+          fetch-depth: 1
+
+      - name: Record the upstream commit
+        id: upstream
+        run: |
+          set -euo pipefail
+          cd dss-demonstrations
+          echo "commit=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+          echo "Upstream esig/dss-demonstrations @ $(git rev-parse HEAD) (tag ${{ steps.version.outputs.version }})"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@c47758b77c9736f4b2ef4073d4d51994fabfe349 # v3.7.1
+
+      - name: Log in to GHCR
+        uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3.3.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push (upstream Dockerfile, Tomcat + WAR)
+        id: build
+        uses: docker/build-push-action@4f58ea79222b3b9dc2c8bbdd6debcef730109a75 # v6.9.0
+        with:
+          context: dss-demonstrations
+          file: dss-demonstrations/Dockerfile
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}:${{ steps.version.outputs.version }}
+            ghcr.io/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}:latest
+          labels: |
+            org.opencontainers.image.title=DSS demo webapp
+            org.opencontainers.image.version=${{ steps.version.outputs.version }}
+            org.opencontainers.image.source=${{ env.SOURCE_REPO }}
+            org.opencontainers.image.revision=${{ steps.upstream.outputs.commit }}
+            es.alexendros.dss.upstream-tag=${{ steps.version.outputs.version }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Attest build provenance
+        uses: actions/attest-build-provenance@520d128f165991a6c774bcb264f323e3d70747f4 # v2.2.0
+        with:
+          subject-name: ghcr.io/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}
+          subject-digest: ${{ steps.build.outputs.digest }}
+          push-to-registry: true
+
+      - name: Publish the digest for vars.DSS_IMAGE
+        run: |
+          set -euo pipefail
+          image="ghcr.io/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}"
+          digest="${{ steps.build.outputs.digest }}"
+          {
+            echo "## Imagen DSS publicada"
+            echo
+            echo "- Version DSS: \`${{ steps.version.outputs.version }}\`"
+            echo "- Commit upstream: \`${{ steps.upstream.outputs.commit }}\`"
+            echo "- Imagen: \`${image}@${digest}\`"
+            echo
+            echo "Asigna ese valor a la variable de repositorio \`DSS_IMAGE\`."
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "DSS_IMAGE=${image}@${digest}"

@@ -83,14 +83,10 @@ jobs:
           npx playwright install --with-deps firefox chromium
           node scripts/interop/browser-interop.mjs
 
-      - name: A3/A4 · Synthetic signature and DSS validation
+      - name: A3 · Synthetic signature with the test certificate
         env:
           INTEROP_OUT: ${{ runner.temp }}/interop-out
           INTEROP_CERTS_DIR: ${{ runner.temp }}/afirma-interop-certs
-          DSS_URL: ${{ vars.DSS_URL }}
-          DSS_IMAGE: ${{ vars.DSS_IMAGE }}
-          DSS_TRUSTSTORE: ${{ vars.DSS_TRUSTSTORE }}
-          DSS_TRUSTSTORE_PASS: ${{ secrets.DSS_TRUSTSTORE_PASS }}
         run: |
           set -euo pipefail
           mkdir -p "$INTEROP_OUT"
@@ -101,6 +97,30 @@ jobs:
             -store "pkcs12:$INTEROP_CERTS_DIR/rsa.p12" \
             -password "$(cat "$INTEROP_CERTS_DIR/p12pass")" \
             -alias interop-rsa -format cades
+
+      - name: Log in to GHCR for the DSS image
+        if: vars.DSS_IMAGE != ''
+        run: |
+          set -euo pipefail
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+
+      # Mientras no exista la primera imagen publicada (vars.DSS_IMAGE vacia) este paso
+      # queda en modo aviso: no bloquea el PR. En cuanto haya imagen, vuelve a ser
+      # bloqueante. Condicion de salida documentada en docs/security/INTEROP-DSS.md.
+      - name: A4 · EU DSS validation (REST, TOTAL_PASSED)
+        continue-on-error: ${{ vars.DSS_IMAGE == '' }}
+        env:
+          INTEROP_OUT: ${{ runner.temp }}/interop-out
+          INTEROP_CERTS_DIR: ${{ runner.temp }}/afirma-interop-certs
+          DSS_URL: ${{ vars.DSS_URL }}
+          DSS_IMAGE: ${{ vars.DSS_IMAGE }}
+          DSS_TRUSTSTORE: ${{ vars.DSS_TRUSTSTORE }}
+          DSS_TRUSTSTORE_PASS: ${{ secrets.DSS_TRUSTSTORE_PASS }}
+        run: |
+          set -euo pipefail
+          if [ -z "${DSS_IMAGE:-}" ] && [ -z "${DSS_URL:-}" ]; then
+            echo "::warning title=A4 en modo aviso::No hay imagen de DSS publicada (vars.DSS_IMAGE) ni instancia (vars.DSS_URL). Lanza el workflow 'DSS image' y asigna el digest. Ver docs/security/INTEROP-DSS.md"
+          fi
           bash scripts/interop/dss-validate.sh "$INTEROP_OUT/firma.csig" "$INTEROP_CERTS_DIR/ca.crt"
 
       - name: C · Repository hygiene (no PKCS#12 committed)
