@@ -15,23 +15,19 @@ import java.util.Collections;
 import org.java_websocket.WebSocket;
 
 import es.gob.afirma.core.ErrorCode;
+import es.gob.afirma.core.misc.protocol.LocalChannelSessions;
 import es.gob.afirma.core.misc.protocol.ProtocolVersion;
-import es.gob.afirma.core.misc.protocol.WebSocketOriginValidator;
+import es.gob.afirma.core.misc.protocol.WebSocketSessionValidator;
 import es.gob.afirma.standalone.SimpleErrorCode;
 
 /**
  * Servidor para la comunicaci&oacute;n por <i>WebSocket</i> acorde a la versi&oacute;n 4
  * del protocolo de Autofirma.
  */
-public final class AfirmaWebSocketServerV4Sup extends AfirmaWebSocketServer {
+public class AfirmaWebSocketServerV4Sup extends AfirmaWebSocketServer {
 
 	/** Prefijo de las peticiones de eco. */
 	private static final String ECHO_REQUEST_PREFIX = "echo="; //$NON-NLS-1$
-
-	/** Sufijo de las peticiones de eco. */
-	private static final String ECHO_REQUEST_SUFFIX = "@EOF"; //$NON-NLS-1$
-
-	private static final String IDSESSION_PARAM_PREFIX = "idsession="; //$NON-NLS-1$
 
 	/** Respuesta que se debe enviar ante las peticiones de echo correctas. */
 	private static final String ECHO_OK_RESPONSE = "OK"; //$NON-NLS-1$
@@ -52,29 +48,25 @@ public final class AfirmaWebSocketServerV4Sup extends AfirmaWebSocketServer {
 	/**
 	 * Genera un servidor websocket que atiende las peticiones de Autofirma.
 	 * @param port Puerto a trav&eacute;s del que realizar la comunicaci&oacute;n.
-	 * @param sessionId Identificador de sesi&oacute;n con la que deben autenticarse
+	 * @param sessionId Identificador de sesi&oacute;n con el que deben autenticarse
 	 * @param protocol Versi&oacute;n de protocolo a usar.
 	 * las llamadas.
 	 */
 	public AfirmaWebSocketServerV4Sup(final int port, final String sessionId, final ProtocolVersion protocol) {
-		super(port, sessionId);
-		this.protocol = protocol;
+		this(port, sessionId, protocol, LocalChannelSessions.validator());
 	}
 
-	@Override
-	public void onOpen(final WebSocket ws, final org.java_websocket.handshake.ClientHandshake handshake) {
-		super.onOpen(ws, handshake);
-		final String origin = handshake.getFieldValue("Origin"); //$NON-NLS-1$
-		final boolean strict = Boolean.getBoolean("strictWebSocketSession"); //$NON-NLS-1$
-		final String allowed = System.getProperty("websocket.allowedOrigins", "*"); //$NON-NLS-1$ //$NON-NLS-2$
-		if (!WebSocketOriginValidator.isAllowed(origin, allowed, strict)) {
-			LOGGER.warning("Origen de websocket no permitido (rechazado)"); //$NON-NLS-1$
-			ws.close(org.java_websocket.framing.CloseFrame.POLICY_VALIDATION, "Origin no permitido"); //$NON-NLS-1$
-			return;
-		}
-		if (origin != null && !origin.trim().isEmpty() && !WebSocketOriginValidator.isAllowed(origin, allowed, true)) {
-			LOGGER.warning("Origen de websocket no reconocido (modo permisivo)"); //$NON-NLS-1$
-		}
+	/**
+	 * Genera un servidor websocket con un registro de sesiones propio.
+	 * @param port Puerto a trav&eacute;s del que realizar la comunicaci&oacute;n.
+	 * @param sessionId Identificador de sesi&oacute;n con el que deben autenticarse las llamadas.
+	 * @param protocol Versi&oacute;n de protocolo a usar.
+	 * @param sessionValidator Registro de sesiones del canal local.
+	 */
+	public AfirmaWebSocketServerV4Sup(final int port, final String sessionId, final ProtocolVersion protocol,
+			final WebSocketSessionValidator sessionValidator) {
+		super(port, sessionId, sessionValidator);
+		this.protocol = protocol;
 	}
 
 	@Override
@@ -90,10 +82,9 @@ public final class AfirmaWebSocketServerV4Sup extends AfirmaWebSocketServer {
 			return;
 		}
 
-		// Si se proporciono un ID de sesion al crear el socket y el ID del
-		// mensaje enviado no coincide con el mismo, ignoraremos la peticion
-		if (this.sessionId != null && !this.sessionId.equals(getSessionId(message))) {
-			LOGGER.warning("La peticion no incluia el id de sesion correcto"); //$NON-NLS-1$
+		// Comprobamos el identificador de sesion (obligatorio en modo estricto, con
+		// caducidad y un solo uso) y el origen ya validado en el saludo
+		if (!guardSession(ws, message)) {
 			final String errorResponse = getErrorMessage(SimpleErrorCode.Request.INVALID_SESSION_ID, this.protocol);
 			broadcast(errorResponse, Collections.singletonList(ws));
 			return;
@@ -145,30 +136,5 @@ public final class AfirmaWebSocketServerV4Sup extends AfirmaWebSocketServer {
 	 */
 	public void setAsyncOperation(final boolean isAsyncOp) {
 		this.isAsyncOperation = isAsyncOp;
-	}
-
-	/**
-	 * Devuelve el valor del par&aacute;metro "idsession" del mensaje.
-	 * @param message Mensaje.
-	 * @return Par&aacute;metro "idsession" o {@code null} si no se encontr&oacute;.
-	 */
-	private static String getSessionId(final String message) {
-		String id = null;
-		final int idx = message.indexOf(IDSESSION_PARAM_PREFIX);
-		if (idx > -1) {
-			final int startIdx = idx + IDSESSION_PARAM_PREFIX.length();
-			final int endIdx = message.indexOf("&", startIdx); //$NON-NLS-1$
-			if (endIdx > -1) {
-				id = message.substring(startIdx, endIdx);
-			}
-			else {
-				id = message.substring(startIdx);
-				if (id.endsWith(ECHO_REQUEST_SUFFIX)) {
-					id = id.substring(0, id.length() - ECHO_REQUEST_SUFFIX.length());
-				}
-			}
-		}
-
-		return id;
 	}
 }
