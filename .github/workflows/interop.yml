@@ -74,12 +74,14 @@ jobs:
           xvfb-run -a bash scripts/interop/tls-probe.sh "$INTEROP_CERTS_DIR"
 
       - name: A2 · Browsers (Firefox, Chromium, Edge)
+        env:
+          INTEROP_CERTS_DIR: ${{ runner.temp }}/afirma-interop-certs
+          INTEROP_OUT: ${{ runner.temp }}/interop-out
         run: |
           set -euo pipefail
           npm install --no-save playwright@1.64.1
           npx playwright install --with-deps firefox chromium
-          INTEROP_OUT="$RUNNER_TEMP/interop-out" \
-            node scripts/interop/browser-interop.mjs
+          node scripts/interop/browser-interop.mjs
 
       - name: A3/A4 · Synthetic signature and DSS validation
         env:
