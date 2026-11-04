@@ -39,7 +39,9 @@ TEST_MODULES := afirma-core,afirma-core-keystores,afirma-core-massive,afirma-cry
 test:
 	mvn -B -pl $(TEST_MODULES) -am test
 # Canal local real (T8): servidores websocket y HTTP con sus clientes.
-	mvn -B -Pautofirma -pl afirma-simple -am \
+# Se usa el perfil env-install para que la reactor incluya los modulos del fork
+# (con -Pautofirma, afirma-core se resolveria del repositorio central).
+	mvn -B -Denv=install -pl afirma-simple -am \
 		-Dtest='HttpChannelIntegrationTest,WebSocketChannelIntegrationTest' \
 		-Dsurefire.failIfNoSpecifiedTests=false test
 
