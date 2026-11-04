@@ -48,6 +48,10 @@ class DssValidatorTest {
 	private static X509Certificate ca2;
 	private static byte[] signature;
 	private static byte[] detachedSignature;
+	// Escenario tipo FNMT: raiz e intermedia con el MISMO nombre.
+	private static X509Certificate sameNameRoot;
+	private static X509Certificate sameNameIntermediate;
+	private static byte[] sameNameSignature;
 
 	@BeforeAll
 	static void setUp() throws Exception {
@@ -65,6 +69,19 @@ class DssValidatorTest {
 		signature = cadesSignature(CONTENT, leafKeys.getPrivate(), leaf, ca1, true);
 		// CAdES detached: el contenido no viaja dentro de la firma.
 		detachedSignature = cadesSignature(CONTENT, leafKeys.getPrivate(), leaf, ca1, false);
+
+		// Cadena con nombres repetidos: raiz autofirmada y subordinada con el mismo DN.
+		final String repeated = "C=ES, O=Interop Test, CN=AC Repetida"; //$NON-NLS-1$
+		final KeyPair sameNameRootKeys = newKeyPair();
+		sameNameRoot = build(new X500Name(repeated), new X500Name(repeated), sameNameRootKeys, sameNameRootKeys, true);
+		final KeyPair sameNameIntKeys = newKeyPair();
+		sameNameIntermediate = build(new X500Name(repeated), new X500Name(repeated),
+			sameNameRootKeys, sameNameIntKeys, true);
+		final KeyPair sameNameLeafKeys = newKeyPair();
+		final X509Certificate sameNameLeaf = build(new X500Name(repeated),
+			new X500Name("C=ES, O=Interop Test, CN=Hoja Repetida"), //$NON-NLS-1$
+			sameNameIntKeys, sameNameLeafKeys, false);
+		sameNameSignature = cadesSignature(CONTENT, sameNameLeafKeys.getPrivate(), sameNameLeaf, sameNameIntermediate, false);
 	}
 
 	@Test
@@ -103,6 +120,18 @@ class DssValidatorTest {
 		assertEquals("INDETERMINATE", result.indication()); //$NON-NLS-1$
 		assertEquals("SIGNED_DATA_NOT_FOUND", result.subIndication()); //$NON-NLS-1$
 		assertEquals(0, result.validSignaturesCount());
+	}
+
+	@Test
+	@DisplayName("cadena con nombres repetidos: intermedia + raiz da TOTAL_PASSED") //$NON-NLS-1$
+	void repeatedNamesWithFullChain() throws Exception {
+		final DssValidator.Result result = DssValidator.validate(
+			sameNameSignature,
+			List.of(sameNameIntermediate.getEncoded(), sameNameRoot.getEncoded()),
+			CONTENT);
+		assertNotNull(result);
+		assertEquals("TOTAL_PASSED", result.indication(), "indicacion: " + result.subIndication()); //$NON-NLS-1$ //$NON-NLS-2$
+		assertEquals(1, result.validSignaturesCount());
 	}
 
 	@Test

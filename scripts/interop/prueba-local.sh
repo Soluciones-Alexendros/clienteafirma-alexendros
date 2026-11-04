@@ -202,6 +202,17 @@ if [ "$CA_SUBJ_CHECK" != "$LEAF_ISSUER" ]; then
 	echo "[prueba-local] AVISO: el ancla elegida no coincide con el emisor del certificado."
 fi
 
+# Cadena completa para DSS: emisora primero y despues el resto de CA del .p12.
+# Hay emisores (FNMT) que reutilizan el nombre de la CA en varios niveles: DSS necesita
+# la cadena entera para encontrar el ancla.
+cat "$WORK/ca.crt" > "$WORK/ca-chain.pem"
+for f in "$WORK"/cert*.pem; do
+	[ "$f" = "$WORK/cert1.pem" ] && continue
+	cmp -s "$f" "$WORK/ca.crt" && continue
+	cat "$f" >> "$WORK/ca-chain.pem"
+done
+CA_FOR_DSS="$WORK/ca-chain.pem"
+
 awk '/BEGIN PRIVATE KEY/,/END PRIVATE KEY/' "$WORK/bundle.pem" > "$WORK/leaf.key"
 [ -s "$WORK/leaf.key" ] || fail "el PKCS#12 no contiene la clave privada"
 chmod 600 "$WORK/leaf.key"
@@ -309,10 +320,10 @@ ok "vector CAdES detached firmado"
 step "6/7 A4 · validacion EU DSS"
 DSS_OBSERVATION=0
 DSS_URL="$DSS_URL" INTEROP_OUT="$OUT" \
-	bash "$ROOT/scripts/interop/dss-validate.sh" "$OUT/firma.xsig" "$WORK/ca.crt" \
+	bash "$ROOT/scripts/interop/dss-validate.sh" "$OUT/firma.xsig" "$CA_FOR_DSS" \
 	> "$OUT/dss-xades.log" 2>&1 || DSS_OBSERVATION=1
 DSS_URL="$DSS_URL" INTEROP_OUT="$OUT" \
-	bash "$ROOT/scripts/interop/dss-validate.sh" "$OUT/firma.csig" "$WORK/ca.crt" "$WORK/plain.txt" \
+	bash "$ROOT/scripts/interop/dss-validate.sh" "$OUT/firma.csig" "$CA_FOR_DSS" "$WORK/plain.txt" \
 	> "$OUT/dss-cades.log" 2>&1 || DSS_OBSERVATION=1
 
 if [ "$DSS_OBSERVATION" -eq 0 ]; then

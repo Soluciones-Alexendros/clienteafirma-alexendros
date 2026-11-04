@@ -87,9 +87,23 @@ public final class Main {
 		final byte[] signature;
 		final byte[] ca;
 		final byte[] content;
+		final java.util.List<byte[]> anchors = new java.util.ArrayList<>();
 		try {
 			signature = Base64.getDecoder().decode(requireText(json, "signature")); //$NON-NLS-1$
-			ca = Base64.getDecoder().decode(requireText(json, "ca")); //$NON-NLS-1$
+			// 'ca' admite una cadena (una sola ancla) o un array (cadena completa).
+			final JsonNode caNode = json.get("ca"); //$NON-NLS-1$
+			if (caNode != null && caNode.isArray()) {
+				for (final JsonNode item : caNode) {
+					anchors.add(Base64.getDecoder().decode(item.asText()));
+				}
+			}
+			else {
+				anchors.add(Base64.getDecoder().decode(requireText(json, "ca"))); //$NON-NLS-1$
+			}
+			if (anchors.isEmpty()) {
+				throw new IllegalArgumentException("sin anclas de confianza"); //$NON-NLS-1$
+			}
+			ca = anchors.get(0);
 			content = json.hasNonNull("content") ? Base64.getDecoder().decode(json.get("content").asText()) : null; //$NON-NLS-1$ //$NON-NLS-2$
 		}
 		catch (final IllegalArgumentException | NullPointerException e) {
@@ -98,11 +112,11 @@ public final class Main {
 		}
 
 		// Trazabilidad sin contenido: solo hashes.
-		LOGGER.info(() -> "validate signature_sha256=" + sha256(signature) + " ca_sha256=" + sha256(ca) //$NON-NLS-1$ //$NON-NLS-2$
+		LOGGER.info(() -> "validate signature_sha256=" + sha256(signature) + " ca_count=" + anchors.size() //$NON-NLS-1$ //$NON-NLS-2$
 			+ (content == null ? "" : " content_sha256=" + sha256(content))); //$NON-NLS-1$ //$NON-NLS-2$
 
 		try {
-			final DssValidator.Result result = DssValidator.validate(signature, ca, content);
+			final DssValidator.Result result = DssValidator.validate(signature, anchors, content);
 			final ObjectNode response = MAPPER.createObjectNode();
 			response.put("indication", result.indication()); //$NON-NLS-1$
 			response.put("subIndication", result.subIndication()); //$NON-NLS-1$

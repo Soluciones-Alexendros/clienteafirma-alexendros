@@ -28,6 +28,9 @@ if [ -n "$CONTENT" ] && [ ! -f "$CONTENT" ]; then
 fi
 mkdir -p "$OUT"
 command -v curl >/dev/null || fail "curl no disponible"
+BASE="$(basename "$SIGNED")"
+REPORT="$OUT/dss-report-${BASE}.json"
+REQUEST="$OUT/dss-request-${BASE}.json"
 
 started_container=""
 cleanup() {
@@ -62,27 +65,37 @@ if ! healthy; then
 fi
 
 B64="$(base64 -w0 "$SIGNED")"
-CA_B64="$(openssl x509 -in "$CA_FILE" -outform DER 2>/dev/null | base64 -w0)"
-[ -n "$CA_B64" ] || fail "no se pudo convertir la CA a DER/base64: $CA_FILE"
-
-BASE="$(basename "$SIGNED")"
-REPORT="$OUT/dss-report-${BASE}.json"
-REQUEST="$OUT/dss-request-${BASE}.json"
-
-# Sin registrar contenido: solo hashes en consola.
-echo "[dss] firma sha256=$(sha256sum "$SIGNED" | cut -d' ' -f1) ca_sha256=$(sha256sum "$CA_FILE" | cut -d' ' -f1)"
-if [ -n "$CONTENT" ]; then
-	echo "[dss] documento original sha256=$(sha256sum "$CONTENT" | cut -d' ' -f1)"
+# La CA puede venir como un unico certificado o como una cadena (varios PEM concatenados).
+# Se envian todas las anclas: hay emisores (FNMT) que reutilizan el nombre de la CA en
+# varios niveles y DSS necesita la cadena completa para no quedarse sin ancla.
+CA_DIR="$OUT/ca-$BASE"
+rm -rf "$CA_DIR"; mkdir -p "$CA_DIR"
+awk -v dir="$CA_DIR" '/BEGIN CERTIFICATE/{n++} n>0{print > (dir "/ca" n ".pem")}' "$CA_FILE"
+CA_ITEMS=""
+CA_COUNT=0
+for pem in "$CA_DIR"/ca*.pem; do
+	[ -f "$pem" ] || continue
+	b64="$(openssl x509 -in "$pem" -outform DER 2>/dev/null | base64 -w0)"
+	[ -n "$b64" ] || continue
+	CA_ITEMS="${CA_ITEMS:+$CA_ITEMS,}\"$b64\""
+	CA_COUNT=$((CA_COUNT + 1))
+done
+[ "$CA_COUNT" -ge 1 ] || fail "no se pudo leer ningun certificado de la CA: $CA_FILE"
+if [ "$CA_COUNT" -eq 1 ]; then
+	CA_JSON="$CA_ITEMS"
+else
+	CA_JSON="[$CA_ITEMS]"
 fi
+echo "[dss] anclas de confianza enviadas: $CA_COUNT"
 
 CONTENT_B64=""
 if [ -n "$CONTENT" ]; then
 	CONTENT_B64="$(base64 -w0 "$CONTENT")"
 fi
 
-python3 - "$B64" "$CA_B64" "$CONTENT_B64" > "$REQUEST" <<'PY'
+python3 - "$B64" "$CA_JSON" "$CONTENT_B64" > "$REQUEST" <<'PY'
 import json, sys
-payload = {"signature": sys.argv[1], "ca": sys.argv[2]}
+payload = {"signature": sys.argv[1], "ca": json.loads(sys.argv[2])}
 if sys.argv[3]:
     payload["content"] = sys.argv[3]
 print(json.dumps(payload))

@@ -42,6 +42,27 @@ public final class DssValidator {
 	}
 
 	/**
+	 * Valida una firma con varias anclas de confianza (cadena completa: intermedia y raiz).
+	 * Necesario cuando el emisor reutiliza el nombre de la CA en varios niveles.
+	 * @param signature Firma reconocible por DSS.
+	 * @param caCertificates Certificados de las CA en DER.
+	 * @param detachedContent Documento firmado, o {@code null} si la firma lo incluye.
+	 * @return Resultado de la validaci&oacute;n.
+	 * @throws ValidationException Si los datos no se pueden procesar.
+	 */
+	public static Result validate(final byte[] signature, final java.util.List<byte[]> caCertificates,
+			final byte[] detachedContent) throws ValidationException {
+		if (caCertificates == null || caCertificates.isEmpty()) {
+			throw new ValidationException("CA vacia");
+		}
+		final CommonCertificateSource anchors = new CommonCertificateSource();
+		for (final byte[] ca : caCertificates) {
+			anchors.addCertificate(new CertificateToken(parseCertificate(ca)));
+		}
+		return validateWithAnchors(signature, anchors, detachedContent);
+	}
+
+	/**
 	 * Valida una firma, opcionalmente con su documento original (firmas detached como CAdES).
 	 * @param signature Firma reconocible por DSS.
 	 * @param caCertificate Certificado de la CA en DER.
@@ -52,19 +73,29 @@ public final class DssValidator {
 	public static Result validate(final byte[] signature, final byte[] caCertificate, final byte[] detachedContent)
 			throws ValidationException {
 
-		if (signature == null || signature.length == 0) {
-			throw new ValidationException("firma vacia");
-		}
 		if (caCertificate == null || caCertificate.length == 0) {
 			throw new ValidationException("CA vacia");
 		}
+		final CommonCertificateSource anchors = new CommonCertificateSource();
+		anchors.addCertificate(new CertificateToken(parseCertificate(caCertificate)));
+		return validateWithAnchors(signature, anchors, detachedContent);
+	}
 
-		final X509Certificate ca;
+	private static X509Certificate parseCertificate(final byte[] der) throws ValidationException {
 		try {
-			ca = (X509Certificate) CertificateFactory.getInstance("X.509").generateCertificate(new ByteArrayInputStream(caCertificate));
+			return (X509Certificate) CertificateFactory.getInstance("X.509")
+				.generateCertificate(new ByteArrayInputStream(der));
 		}
 		catch (final Exception e) {
 			throw new ValidationException("CA no es un certificado X.509 valido", e);
+		}
+	}
+
+	private static Result validateWithAnchors(final byte[] signature, final CommonCertificateSource anchors,
+			final byte[] detachedContent) throws ValidationException {
+
+		if (signature == null || signature.length == 0) {
+			throw new ValidationException("firma vacia");
 		}
 
 		final DSSDocument document = new InMemoryDocument(signature);
@@ -77,8 +108,6 @@ public final class DssValidator {
 			throw new ValidationException("formato de firma no soportado", e);
 		}
 
-		final CommonCertificateSource anchors = new CommonCertificateSource();
-		anchors.addCertificate(new CertificateToken(ca));
 		final CommonTrustedCertificateSource trustAnchors = new CommonTrustedCertificateSource();
 		trustAnchors.importAsTrusted(anchors);
 
