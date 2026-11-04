@@ -73,23 +73,38 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+      - name: Install Trivy (verificado por checksum, sin acciones de terceros)
+        env:
+          TRIVY_VERSION: '0.76.1'
+        run: |
+          set -euo pipefail
+          base="https://github.com/aquasecurity/trivy/releases/download/v${TRIVY_VERSION}"
+          curl -fsSL -o trivy.tar.gz "${base}/trivy_${TRIVY_VERSION}_Linux-64bit.tar.gz"
+          curl -fsSL -o trivy_checksums.txt "${base}/trivy_${TRIVY_VERSION}_checksums.txt"
+          grep "trivy_${TRIVY_VERSION}_Linux-64bit.tar.gz" trivy_checksums.txt | sha256sum -c -
+          tar -xzf trivy.tar.gz trivy
+          sudo install -m 0755 trivy /usr/local/bin/trivy
+          trivy --version
+
       - name: Trivy scan (fail on fixable HIGH/CRITICAL)
-        uses: aquasecurity/trivy-action@915b19bbe73b92a6cf82a1bc12b087c9a19a5fe2 # v0.28.0
-        with:
-          image-ref: ${{ env.IMAGE_NAME }}:scan
-          format: table
-          severity: HIGH,CRITICAL
-          ignore-unfixed: true
-          exit-code: '1'
-          vuln-type: os,library
+        run: |
+          set -euo pipefail
+          trivy image \
+            --scanners vuln \
+            --severity HIGH,CRITICAL \
+            --ignore-unfixed \
+            --exit-code 1 \
+            --no-progress \
+            "${{ env.IMAGE_NAME }}:scan"
 
       - name: Trivy SBOM (CycloneDX)
-        uses: aquasecurity/trivy-action@915b19bbe73b92a6cf82a1bc12b087c9a19a5fe2 # v0.28.0
-        with:
-          image-ref: ${{ env.IMAGE_NAME }}:scan
-          format: cyclonedx
-          output: interop-dss-validator.sbom.cdx.json
-          exit-code: '0'
+        run: |
+          set -euo pipefail
+          trivy image \
+            --format cyclonedx \
+            --output interop-dss-validator.sbom.cdx.json \
+            --no-progress \
+            "${{ env.IMAGE_NAME }}:scan"
 
       - name: Log in to GHCR
         if: github.event_name != 'pull_request'
