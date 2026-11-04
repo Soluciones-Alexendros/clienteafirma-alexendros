@@ -11,16 +11,16 @@ on:
   schedule:
     - cron: '0 3 * * 1'
   workflow_dispatch:
-  # Permite construir la imagen desde una rama de trabajo antes de que el workflow
-  # exista en la rama por defecto (workflow_dispatch exige master).
-  push:
-    tags:
-      - 'dss-image-v*'
     inputs:
       dss_version:
         description: 'Tag de esig/dss-demonstrations (por defecto, DSS_VERSION del workflow)'
         required: false
         type: string
+  # Permite construir la imagen desde una rama de trabajo antes de que el workflow
+  # exista en la rama por defecto (workflow_dispatch exige master).
+  push:
+    tags:
+      - 'dss-image-v*'
 
 permissions: {}
 
@@ -31,6 +31,8 @@ concurrency:
 env:
   DSS_VERSION: '6.5.1'
   IMAGE_NAME: dss-demo-webapp
+  # GHCR exige minusculas en el nombre del repositorio de la imagen.
+  IMAGE_OWNER: soluciones-alexendros
   SOURCE_REPO: https://github.com/esig/dss-demonstrations
 
 jobs:
@@ -87,8 +89,8 @@ jobs:
           file: dss-demonstrations/Dockerfile
           push: true
           tags: |
-            ghcr.io/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}:${{ steps.version.outputs.version }}
-            ghcr.io/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}:latest
+            ghcr.io/${{ env.IMAGE_OWNER }}/${{ env.IMAGE_NAME }}:${{ steps.version.outputs.version }}
+            ghcr.io/${{ env.IMAGE_OWNER }}/${{ env.IMAGE_NAME }}:latest
           labels: |
             org.opencontainers.image.title=DSS demo webapp
             org.opencontainers.image.version=${{ steps.version.outputs.version }}
@@ -101,14 +103,14 @@ jobs:
       - name: Attest build provenance
         uses: actions/attest-build-provenance@520d128f165991a6c774bcb264f323e3d70747f4 # v2.2.0
         with:
-          subject-name: ghcr.io/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}
+          subject-name: ghcr.io/${{ env.IMAGE_OWNER }}/${{ env.IMAGE_NAME }}
           subject-digest: ${{ steps.build.outputs.digest }}
           push-to-registry: true
 
       - name: Publish the digest for vars.DSS_IMAGE
         run: |
           set -euo pipefail
-          image="ghcr.io/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}"
+          image="ghcr.io/${{ env.IMAGE_OWNER }}/${{ env.IMAGE_NAME }}"
           digest="${{ steps.build.outputs.digest }}"
           {
             echo "## Imagen DSS publicada"
