@@ -94,15 +94,16 @@ fi
 # A3/A4 · firma con el certificado del operador y validacion DSS.
 if [ -f "$JAR" ]; then
 	echo "[interop-local] firmando un documento sintetico con el certificado del operador"
-	printf 'vector sintetico de interoperabilidad\n' > "$WORK/plain.txt"
-	java -jar "$JAR" sign -i "$WORK/plain.txt" -o "$OUT/firma.csig" \
-		-store "pkcs12:$WORK/jar.p12" -password "$JAR_PASS" -alias "$ALIAS" -format cades \
+	# Vector autocontenido (XAdES enveloped): el validador recibe solo firma + CA.
+	printf '<?xml version="1.0" encoding="UTF-8"?>\n<interop>vector sintetico</interop>\n' > "$WORK/vector.xml"
+	java -jar "$JAR" sign -i "$WORK/vector.xml" -o "$OUT/firma.xsig" \
+		-store "pkcs12:$WORK/jar.p12" -password "$JAR_PASS" -alias "$ALIAS" -format xades \
 		>"$OUT/firma.log" 2>&1 || { tail -20 "$OUT/firma.log" >&2; fail "la firma fallo"; }
-	ok "firma CAdES generada con el certificado del operador"
+	ok "firma XAdES generada con el certificado del operador"
 
 	if command -v docker >/dev/null 2>&1 || curl -sf -o /dev/null http://127.0.0.1:8080/ 2>/dev/null; then
 		echo "[interop-local] A4 validacion DSS"
-		INTEROP_OUT="$OUT" bash "$ROOT/scripts/interop/dss-validate.sh" "$OUT/firma.csig" \
+		INTEROP_OUT="$OUT" bash "$ROOT/scripts/interop/dss-validate.sh" "$OUT/firma.xsig" \
 			>"$OUT/dss.log" 2>&1 || { tail -20 "$OUT/dss.log" >&2; echo "[interop-local] A4 no concluyente: revisa $OUT/dss.log"; }
 	fi
 else

@@ -90,13 +90,15 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p "$INTEROP_OUT"
-          printf 'vector sintetico de interoperabilidad\n' > "$RUNNER_TEMP/plain.txt"
+          # El vector debe ser autocontenido (XAdES enveloped): el contrato del validador es
+          # {signature, ca} y una CAdES detached no se puede validar sin el documento original.
+          printf '<?xml version="1.0" encoding="UTF-8"?>\n<interop>vector sintetico</interop>\n' > "$RUNNER_TEMP/vector.xml"
           mvn -B -q -Denv=install -pl afirma-simple -am -DskipTests package
           java -jar afirma-simple/target/autofirma.jar sign \
-            -i "$RUNNER_TEMP/plain.txt" -o "$INTEROP_OUT/firma.csig" \
+            -i "$RUNNER_TEMP/vector.xml" -o "$INTEROP_OUT/firma.xsig" \
             -store "pkcs12:$INTEROP_CERTS_DIR/rsa.p12" \
             -password "$(cat "$INTEROP_CERTS_DIR/p12pass")" \
-            -alias interop-rsa -format cades
+            -alias interop-rsa -format xades
 
       - name: Log in to GHCR for the DSS image
         run: |
@@ -120,7 +122,7 @@ jobs:
           if [ -z "${DSS_IMAGE:-}" ] && [ -z "${DSS_URL:-}" ]; then
             echo "::warning title=A4 en modo aviso::No hay imagen de DSS publicada (vars.DSS_IMAGE) ni instancia (vars.DSS_URL). Lanza el workflow 'DSS image' y asigna el digest. Ver docs/security/INTEROP-DSS.md"
           fi
-          bash scripts/interop/dss-validate.sh "$INTEROP_OUT/firma.csig" "$INTEROP_CERTS_DIR/ca.crt"
+          bash scripts/interop/dss-validate.sh "$INTEROP_OUT/firma.xsig" "$INTEROP_CERTS_DIR/ca.crt"
 
       - name: C · Repository hygiene (no PKCS#12 committed)
         run: |
