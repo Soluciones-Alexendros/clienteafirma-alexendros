@@ -69,12 +69,26 @@ fi
 
 B64="$(base64 -w0 "$SIGNED")"
 REPORT="$OUT/dss-report.json"
+REQUEST="$OUT/dss-request.json"
 
-# El endpoint REST de DSS recibe el documento en JSON (campo signedDocument.bytes).
-python3 - "$B64" > /tmp/dss-request.json <<'PY'
+# La CA sintetica del run viaja en la propia peticion como ancla de confianza, para no
+# depender de un truststore montado ni de secretos.
+CA_B64=""
+if [ -n "$CA_FILE" ] && [ -f "$CA_FILE" ]; then
+	CA_B64="$(openssl x509 -in "$CA_FILE" -outform DER 2>/dev/null | base64 -w0)"
+	[ -n "$CA_B64" ] || fail "no se pudo convertir la CA a DER/base64: $CA_FILE"
+fi
+
+python3 - "$B64" "$CA_B64" > "$REQUEST" <<'PY'
 import json, sys
-print(json.dumps({"signedDocument": {"bytes": sys.argv[1]},
-                  "tokenExtractionStrategy": "NONE"}))
+payload = {
+    "signedDocument": {"bytes": sys.argv[1]},
+    "tokenExtractionStrategy": "NONE",
+}
+if sys.argv[2]:
+    # Forma esperada por DSS para un certificado en REST.
+    payload["trustedCertificates"] = [{"encodedCertificate": sys.argv[2]}]
+print(json.dumps(payload))
 PY
 
 HTTP_CODE="$(curl -s -o "$REPORT" -w '%{http_code}' \
@@ -83,7 +97,13 @@ HTTP_CODE="$(curl -s -o "$REPORT" -w '%{http_code}' \
 	-H 'Accept: application/json' \
 	--data-binary @/tmp/dss-request.json)"
 
-[ "$HTTP_CODE" = "200" ] || { cat "$REPORT" >&2; fail "DSS devolvio HTTP $HTTP_CODE"; }
+if [ "$HTTP_CODE" != "200" ]; then
+	echo "[dss] peticion enviada:" >&2
+	head -c 400 "$REQUEST" >&2; echo >&2
+	echo "[dss] respuesta del servicio (HTTP $HTTP_CODE):" >&2
+	head -c 4000 "$REPORT" >&2; echo >&2
+	fail "DSS devolvio HTTP $HTTP_CODE"
+fi
 
 INDICATION="$(python3 - "$REPORT" <<'PY'
 import json, sys
@@ -103,6 +123,10 @@ PY
 )"
 
 echo "[dss] indication=$INDICATION firmasValidas=$VALID_COUNT (informe: $REPORT)"
+if [ "$INDICATION" != "TOTAL_PASSED" ]; then
+	echo "[dss] respuesta del servicio:" >&2
+	head -c 4000 "$REPORT" >&2; echo >&2
+fi
 [ "$INDICATION" = "TOTAL_PASSED" ] || fail "DSS no devolvio TOTAL_PASSED (indication=$INDICATION)"
 [ "$VALID_COUNT" -ge 1 ] || fail "DSS no contabiliza ninguna firma valida"
 ok "DSS valida la firma con TOTAL_PASSED"

@@ -113,9 +113,9 @@ jobs:
           INTEROP_OUT: ${{ runner.temp }}/interop-out
           INTEROP_CERTS_DIR: ${{ runner.temp }}/afirma-interop-certs
           DSS_URL: ${{ vars.DSS_URL }}
-          DSS_IMAGE: ${{ vars.DSS_IMAGE }}
-          DSS_TRUSTSTORE: ${{ vars.DSS_TRUSTSTORE }}
-          DSS_TRUSTSTORE_PASS: ${{ secrets.DSS_TRUSTSTORE_PASS }}
+          # TEMPORAL (T3b · A4): digest fijado para probar la validacion real mientras se
+          # valida el circuito. Se retira en cuanto A4 dependa solo de vars.DSS_IMAGE.
+          DSS_IMAGE: ghcr.io/soluciones-alexendros/dss-demo-webapp@sha256:e924c608888a21ef6c45d03aed96b983f4b53a063d4fbe7a2aa6fcc42577a744
         run: |
           set -euo pipefail
           if [ -z "${DSS_IMAGE:-}" ] && [ -z "${DSS_URL:-}" ]; then
