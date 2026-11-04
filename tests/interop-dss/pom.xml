@@ -17,7 +17,8 @@
     <!-- DSS solo publica hasta 6.2 en Maven Central (groupId eu.europa.ec.joinup.sd-dss).
          6.5.1 no existe alli; ver docs/security/INTEROP-DSS.md. -->
     <dss.version>6.2</dss.version>
-    <jackson.version>2.17.2</jackson.version>
+    <!-- Fijado por el gate Trivy: 2.17.x arrastra CVE corregidas en 2.22.3 -->
+    <jackson.version>2.22.3</jackson.version>
     <bouncycastle.version>1.78.1</bouncycastle.version>
     <junit.version>5.10.2</junit.version>
   </properties>
