@@ -36,10 +36,13 @@ gen_leaf() {
 	openssl req -new -nodes -keyout "$OUT/$name.key" -out "$OUT/$name.csr" \
 		-subj "$SUBJ_BASE/CN=Interop Test Signer $name" "$@" >/dev/null 2>&1
 
+	# noRevAvail (2.5.29.56, ETSI EN 319 412-5): permite que EU DSS valide sin CRL ni OCSP
+	# manteniendo su politica por defecto (el certificado declara que no hay datos de revocacion).
 	printf '%s\n' \
 		"basicConstraints=critical,CA:FALSE" \
 		"keyUsage=critical,digitalSignature,nonRepudiation" \
-		"extendedKeyUsage=emailProtection,clientAuth,serverAuth" > "$OUT/$name.ext"
+		"extendedKeyUsage=emailProtection,clientAuth,serverAuth" \
+		"2.5.29.56=DER:05:00" > "$OUT/$name.ext"
 
 	openssl x509 -req -in "$OUT/$name.csr" -CA "$OUT/ca.crt" -CAkey "$OUT/ca.key" \
 		-CAcreateserial -days "$DAYS" -sha256 \
