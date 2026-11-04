@@ -23,6 +23,7 @@ jobs:
     timeout-minutes: 60
     permissions:
       contents: read
+      packages: read
 
     steps:
       - name: Checkout
@@ -120,9 +121,7 @@ jobs:
           INTEROP_OUT: ${{ runner.temp }}/interop-out
           INTEROP_CERTS_DIR: ${{ runner.temp }}/afirma-interop-certs
           DSS_URL: ${{ vars.DSS_URL }}
-          # TEMPORAL (T3b · A4): digest fijado para probar la validacion real mientras se
-          # valida el circuito. Se retira en cuanto A4 dependa solo de vars.DSS_IMAGE.
-          DSS_IMAGE: ghcr.io/soluciones-alexendros/interop-dss-validator@sha256:57715965159aa89020102810fe00237c3f1cfa4f26158f1ea083106cf714cf90
+          DSS_IMAGE: ${{ vars.DSS_IMAGE }}
         run: |
           set -euo pipefail
           if [ -z "${DSS_IMAGE:-}" ] && [ -z "${DSS_URL:-}" ]; then
