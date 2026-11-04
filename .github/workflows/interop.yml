@@ -114,7 +114,7 @@ jobs:
           DSS_URL: ${{ vars.DSS_URL }}
           # TEMPORAL (T3b · A4): digest fijado para probar la validacion real mientras se
           # valida el circuito. Se retira en cuanto A4 dependa solo de vars.DSS_IMAGE.
-          DSS_IMAGE: ghcr.io/soluciones-alexendros/interop-dss-validator@sha256:c9d2c6084b1782e8d9120c7dddfe260299daf4c876a91e8173982344239037c0
+          DSS_IMAGE: ghcr.io/soluciones-alexendros/interop-dss-validator@sha256:387435b12fc31005b73f49a2f70c2ef574eca82a5e5cbd5a6063d5d1d683d76d
         run: |
           set -euo pipefail
           if [ -z "${DSS_IMAGE:-}" ] && [ -z "${DSS_URL:-}" ]; then
