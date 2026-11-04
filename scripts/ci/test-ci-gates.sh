@@ -74,9 +74,11 @@ grep -F 'isStrictSslChecks()' "$TSA_DIR/CMSTimestamper.java" >/dev/null \
   || fail "CMSTimestamper no consulta strictSslChecks"
 grep -F 'else if (strictSsl) {' "$TSA_DIR/CMSTimestamper.java" >/dev/null \
   || fail "CMSTimestamper no usa la confianza del sistema en modo estricto"
-# El trust manager que acepta cualquier certificado debe quedar despues del gate estricto
-awk '/else if \(strictSsl\) \{/{seen=1} /checkServerTrusted.*No hacemos nada/{if (!seen) exit 1}' \
-  "$TSA_DIR/CMSTimestamper.java" || fail "el trust manager permisivo no esta condicionado a strictSslChecks"
+# La TSA no define sus propios trust managers: usa los permisivos centralizados de T5
+! grep -F 'checkServerTrusted' "$TSA_DIR/CMSTimestamper.java" >/dev/null \
+  || fail "CMSTimestamper define trust managers propios"
+grep -F 'SslSecurityManager.getPermissiveTrustManagers()' "$TSA_DIR/CMSTimestamper.java" >/dev/null \
+  || fail "CMSTimestamper no usa los trust managers permisivos centralizados"
 grep -F 'TsaResponseValidator.validate(' "$TSA_DIR/CMSTimestamper.java" >/dev/null \
   || fail "CMSTimestamper no valida la respuesta de la TSA"
 grep -F 'isSignatureValid(' "$TSA_DIR/TsaResponseValidator.java" >/dev/null \

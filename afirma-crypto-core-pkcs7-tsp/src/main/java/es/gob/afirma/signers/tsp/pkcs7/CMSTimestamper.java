@@ -32,15 +32,12 @@ import java.util.Hashtable;
 import java.util.List;
 import java.util.logging.Logger;
 
-import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.KeyManager;
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLSession;
 import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
-import javax.net.ssl.X509TrustManager;
 
 import org.bouncycastle.asn1.ASN1InputStream;
 import org.bouncycastle.asn1.ASN1ObjectIdentifier;
@@ -430,11 +427,8 @@ public final class CMSTimestamper {
 
     			// Podrian encontrarse varios tipos de conexion HTTPS
     			if (conn instanceof javax.net.ssl.HttpsURLConnection) {
-    				((javax.net.ssl.HttpsURLConnection) conn).setHostnameVerifier(new HostnameVerifier() {
-    					public boolean verify(final String hostname, final SSLSession session) {
-    						return true;
-    					}
-    				});
+    				((javax.net.ssl.HttpsURLConnection) conn).setHostnameVerifier(
+    					SslSecurityManager.getPermissiveHostnameVerifier());
     			}
     			else {
     				LOGGER.warning(
@@ -491,20 +485,9 @@ public final class CMSTimestamper {
     	else {
     		LOGGER.warning("No se validara el certificado del servidor de la TSA (host: " + this.tsaURL.getHost() //$NON-NLS-1$
     				+ "); strictSslChecks=false"); //$NON-NLS-1$
-    		trustManagers = new TrustManager[] {
-    			new X509TrustManager() {
-					@Override
-					public void checkClientTrusted(final X509Certificate[] arg0, final String arg1) { /* No hacemos nada. */ }
-
-					@Override
-					public void checkServerTrusted(final X509Certificate[] arg0, final String arg1) { /* No hacemos nada. */ }
-
-					@Override
-					public X509Certificate[] getAcceptedIssuers() {
-						return new X509Certificate[0];
-					}
-				}
-    		};
+    		// Trust managers permisivos centralizados en SslSecurityManager (T5), que es el
+    		// unico punto donde se concentra la validacion TLS permisiva
+    		trustManagers = SslSecurityManager.getPermissiveTrustManagers();
     	}
 
     	// Se configura el contexto SSL
