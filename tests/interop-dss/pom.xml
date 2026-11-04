@@ -19,7 +19,7 @@
     <dss.version>6.2</dss.version>
     <!-- Fijado por el gate Trivy: 2.17.x arrastra CVE corregidas en 2.22.3 -->
     <jackson.version>2.22.3</jackson.version>
-    <bouncycastle.version>1.78.1</bouncycastle.version>
+    <bouncycastle.version>1.86</bouncycastle.version>
     <junit.version>5.10.2</junit.version>
   </properties>
 
@@ -60,18 +60,17 @@
       <version>${jackson.version}</version>
     </dependency>
 
-    <!-- Tests: generacion de CA y firma CAdES en memoria -->
+    <!-- BouncyCastle: DSS lo necesita en ejecucion (CMS) y los tests lo usan para
+         generar CA y firmas sinteticas en memoria. -->
     <dependency>
       <groupId>org.bouncycastle</groupId>
       <artifactId>bcprov-jdk18on</artifactId>
       <version>${bouncycastle.version}</version>
-      <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.bouncycastle</groupId>
       <artifactId>bcpkix-jdk18on</artifactId>
       <version>${bouncycastle.version}</version>
-      <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.junit.jupiter</groupId>

@@ -111,9 +111,11 @@ public final class Main {
 			LOGGER.warning(() -> "validacion no procesable: " + e.getMessage()); //$NON-NLS-1$
 			respond(exchange, 400, Map.of("error", e.getMessage())); //$NON-NLS-1$ //$NON-NLS-2$
 		}
-		catch (final RuntimeException e) {
-			LOGGER.severe(() -> "error interno: " + e.getClass().getSimpleName()); //$NON-NLS-1$
-			respond(exchange, 500, Map.of("error", "error interno de validacion")); //$NON-NLS-1$ //$NON-NLS-2$
+		catch (final RuntimeException | Error e) {
+			// Un Error (p. ej. NoClassDefFoundError del classpath sombreado) mataria el hilo
+			// del servidor y dejaria la conexion sin respuesta: se captura y se informa.
+			LOGGER.severe(() -> "error interno: " + e.getClass().getName() + ": " + e.getMessage()); //$NON-NLS-1$ //$NON-NLS-2$
+			respond(exchange, 500, Map.of("error", "error interno de validacion: " + e.getClass().getSimpleName())); //$NON-NLS-1$ //$NON-NLS-2$
 		}
 	}
 
