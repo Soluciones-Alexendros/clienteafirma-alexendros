@@ -57,6 +57,33 @@ continue-on-error: ${{ vars.DSS_IMAGE == '' }}
 - El aviso se emite como anotación `::warning` en el run y consta en este documento.
 - A3 (firma sintética) es un paso independiente: su resultado nunca queda oculto por A4.
 
+## Versión de DSS y actualización
+
+Se usa **DSS 6.2** fijado por versión desde Maven Central (`eu.europa.ec.joinup.sd-dss`), que es la
+última publicada allí: 6.5.1 no existe en Central (`numFound=0`) y el repositorio CEF devuelve 404.
+
+**Condición de subida: subir DSS cuando Maven Central publique una versión mayor que 6.2.**
+Renovate abre el PR con la etiqueta `visual-review` y **sin automerge**: la actualización de DSS la
+fusiona Alejandro tras revisar el resultado de `interop` (A3 y A4 con los dos vectores).
+
+## Vectores de firma que valida A4
+
+| Vector | Autocontenido | Campo `content` | Resultado esperado |
+| --- | --- | --- | --- |
+| XAdES enveloped (`firma.xsig`) | Sí | Ausente | `TOTAL_PASSED` |
+| CAdES detached (`firma.csig`) | No | Documento original en base64 | `TOTAL_PASSED` |
+
+Sin `content`, una CAdES detached devuelve `INDETERMINATE` con `SIGNED_DATA_NOT_FOUND`: está cubierto
+por un test unitario y es el comportamiento correcto, no un fallo.
+
+## Revocación: `noRevAvail` solo en el certificado sintético del CI
+
+La hoja sintética que genera `scripts/interop/gen-test-certs.sh` lleva la extensión `noRevAvail`
+(2.5.29.56, ETSI EN 319 412-5). Con ella, la política por defecto de DSS permite validar sin CRL ni
+OCSP y sin red. **Se aplica solo al certificado sintético del CI**: la prueba local con el `.p12` real
+no añade esa extensión, así que es esperable que DSS devuelva `INDETERMINATE` por falta de datos de
+revocación. Ese resultado se reporta como observación, nunca como fallo de interop.
+
 ## Confianza de la CA de prueba
 
 La CA sintética del run no está en el truststore de DSS. Para obtener `TOTAL_PASSED` hay que

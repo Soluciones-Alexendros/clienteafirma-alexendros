@@ -43,9 +43,11 @@ import org.junit.jupiter.api.Test;
  */
 class DssValidatorTest {
 
+	private static final byte[] CONTENT = "vector sintetico de interoperabilidad".getBytes(StandardCharsets.UTF_8); //$NON-NLS-1$
 	private static X509Certificate ca1;
 	private static X509Certificate ca2;
 	private static byte[] signature;
+	private static byte[] detachedSignature;
 
 	@BeforeAll
 	static void setUp() throws Exception {
@@ -60,8 +62,9 @@ class DssValidatorTest {
 		final KeyPair leafKeys = newKeyPair();
 		final X509Certificate leaf = leaf(ca1Keys, leafKeys, "Interop Test Signer"); //$NON-NLS-1$
 
-		signature = cadesSignature("vector sintetico de interoperabilidad".getBytes(StandardCharsets.UTF_8), //$NON-NLS-1$
-			leafKeys.getPrivate(), leaf, ca1);
+		signature = cadesSignature(CONTENT, leafKeys.getPrivate(), leaf, ca1, true);
+		// CAdES detached: el contenido no viaja dentro de la firma.
+		detachedSignature = cadesSignature(CONTENT, leafKeys.getPrivate(), leaf, ca1, false);
 	}
 
 	@Test
@@ -80,6 +83,25 @@ class DssValidatorTest {
 		final DssValidator.Result result = DssValidator.validate(signature, ca2.getEncoded());
 		assertNotNull(result);
 		assertEquals("INDETERMINATE", result.indication()); //$NON-NLS-1$
+		assertEquals(0, result.validSignaturesCount());
+	}
+
+	@Test
+	@DisplayName("CAdES detached con content da TOTAL_PASSED") //$NON-NLS-1$
+	void detachedSignatureWithContent() throws Exception {
+		final DssValidator.Result result = DssValidator.validate(detachedSignature, ca1.getEncoded(), CONTENT);
+		assertNotNull(result);
+		assertEquals("TOTAL_PASSED", result.indication(), "indicacion: " + result.subIndication()); //$NON-NLS-1$ //$NON-NLS-2$
+		assertEquals(1, result.validSignaturesCount());
+	}
+
+	@Test
+	@DisplayName("CAdES detached sin content da SIGNED_DATA_NOT_FOUND") //$NON-NLS-1$
+	void detachedSignatureWithoutContent() throws Exception {
+		final DssValidator.Result result = DssValidator.validate(detachedSignature, ca1.getEncoded());
+		assertNotNull(result);
+		assertEquals("INDETERMINATE", result.indication()); //$NON-NLS-1$
+		assertEquals("SIGNED_DATA_NOT_FOUND", result.subIndication()); //$NON-NLS-1$
 		assertEquals(0, result.validSignaturesCount());
 	}
 
@@ -150,9 +172,9 @@ class DssValidatorTest {
 		return new JcaX509CertificateConverter().setProvider("BC").getCertificate(builder.build(signer)); //$NON-NLS-1$
 	}
 
-	/** Firma CAdES-BES en memoria (suficiente para que DSS detecte el formato). */
+	/** Firma CAdES-BES en memoria; {@code encapsulated=false} genera una firma detached. */
 	private static byte[] cadesSignature(final byte[] content, final PrivateKey key,
-			final X509Certificate signer, final X509Certificate ca) throws Exception {
+			final X509Certificate signer, final X509Certificate ca, final boolean encapsulated) throws Exception {
 
 		final CMSSignedDataGenerator generator = new CMSSignedDataGenerator();
 		final ContentSigner contentSigner = new JcaContentSignerBuilder("SHA256withRSA") //$NON-NLS-1$
@@ -163,7 +185,7 @@ class DssValidatorTest {
 				.build(contentSigner, signer));
 		generator.addCertificates(new JcaCertStore(List.of(signer, ca)));
 
-		final CMSSignedData signed = generator.generate(new CMSProcessableByteArray(content), true);
+		final CMSSignedData signed = generator.generate(new CMSProcessableByteArray(content), encapsulated);
 		return signed.getEncoded();
 	}
 }

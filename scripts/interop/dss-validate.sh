@@ -4,7 +4,7 @@
 # El servicio (tests/interop-dss) recibe la firma y la CA del run en la propia peticion:
 # no hay truststore montado, ni LOTL, ni secretos, ni red desde el contenedor.
 #
-# Uso: scripts/interop/dss-validate.sh <fichero-firmado> [ca.crt]
+# Uso: scripts/interop/dss-validate.sh <fichero-firmado> <ca.crt> [documento-original]
 # Entorno:
 #   DSS_URL    base del validador ya escuchando (por defecto http://127.0.0.1:8080)
 #   DSS_IMAGE  imagen a levantar si no hay servicio (por digest)
@@ -12,6 +12,7 @@ set -euo pipefail
 
 SIGNED="${1:-}"
 CA_FILE="${2:-}"
+CONTENT="${3:-}"
 DSS_URL="${DSS_URL:-http://127.0.0.1:8080}"
 DSS_IMAGE="${DSS_IMAGE:-}"
 OUT="${INTEROP_OUT:-interop-local}"
@@ -22,6 +23,9 @@ ok() { echo "OK: $*"; }
 [ -n "$SIGNED" ] || fail "uso: dss-validate.sh <fichero-firmado> [ca.crt]"
 [ -f "$SIGNED" ] || fail "no existe el fichero firmado: $SIGNED"
 [ -n "$CA_FILE" ] && [ -f "$CA_FILE" ] || fail "falta la CA del run: $CA_FILE"
+if [ -n "$CONTENT" ] && [ ! -f "$CONTENT" ]; then
+	fail "no existe el documento original indicado: $CONTENT"
+fi
 mkdir -p "$OUT"
 command -v curl >/dev/null || fail "curl no disponible"
 
@@ -66,10 +70,21 @@ REQUEST="$OUT/dss-request.json"
 
 # Sin registrar contenido: solo hashes en consola.
 echo "[dss] firma sha256=$(sha256sum "$SIGNED" | cut -d' ' -f1) ca_sha256=$(sha256sum "$CA_FILE" | cut -d' ' -f1)"
+if [ -n "$CONTENT" ]; then
+	echo "[dss] documento original sha256=$(sha256sum "$CONTENT" | cut -d' ' -f1)"
+fi
 
-python3 - "$B64" "$CA_B64" > "$REQUEST" <<'PY'
+CONTENT_B64=""
+if [ -n "$CONTENT" ]; then
+	CONTENT_B64="$(base64 -w0 "$CONTENT")"
+fi
+
+python3 - "$B64" "$CA_B64" "$CONTENT_B64" > "$REQUEST" <<'PY'
 import json, sys
-print(json.dumps({"signature": sys.argv[1], "ca": sys.argv[2]}))
+payload = {"signature": sys.argv[1], "ca": sys.argv[2]}
+if sys.argv[3]:
+    payload["content"] = sys.argv[3]
+print(json.dumps(payload))
 PY
 
 HTTP_CODE="$(curl -s -o "$REPORT" -w '%{http_code}' \

@@ -75,7 +75,9 @@ grep -q "interop-dss-validator" "$WF_IMAGE" || fail "dss-image.yml no construye 
 grep -q "tests/interop-dss" "$WF_IMAGE" || fail "dss-image.yml no usa tests/interop-dss"
 grep -q "trivy image" "$WF_IMAGE" || fail "dss-image.yml no escanea con Trivy"
 grep -q -- "--ignore-unfixed" "$WF_IMAGE" || fail "el escaneo Trivy no ignora lo no corregible"
-grep -q -- "-format xades" "$ROOT/.github/workflows/interop.yml" || fail "A3 no firma un vector autocontenido"
+grep -q -- "-format xades" "$ROOT/.github/workflows/interop.yml" || fail "A3 no firma el vector XAdES"
+grep -q -- "-format cades" "$ROOT/.github/workflows/interop.yml" || fail "A3 no firma el vector CAdES"
+grep -q "firma.csig" "$ROOT/.github/workflows/interop.yml" || fail "A4 no valida la CAdES detached"
 grep -q "attest-build-provenance" "$WF_IMAGE" || fail "dss-image.yml no attesta la procedencia"
 grep -q "continue-on-error: \${{ vars.DSS_IMAGE == '' }}" "$WF_INTEROP" \
 	|| fail "A4 no esta en modo aviso condicionado a DSS_IMAGE"

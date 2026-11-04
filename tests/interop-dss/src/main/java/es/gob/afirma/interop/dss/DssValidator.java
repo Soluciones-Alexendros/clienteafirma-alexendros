@@ -31,13 +31,26 @@ public final class DssValidator {
 	}
 
 	/**
-	 * Valida una firma.
-	 * @param signature Firma (CAdES, XAdES, PAdES u otro contenedor reconocible por DSS).
+	 * Valida una firma autocontenida (XAdES enveloped, PAdES, ASiC...).
+	 * @param signature Firma reconocible por DSS.
 	 * @param caCertificate Certificado de la CA en DER.
 	 * @return Resultado con indicaci&oacute;n, subindicaci&oacute;n y formato detectado.
 	 * @throws ValidationException Si la firma o la CA no se pueden procesar.
 	 */
 	public static Result validate(final byte[] signature, final byte[] caCertificate) throws ValidationException {
+		return validate(signature, caCertificate, null);
+	}
+
+	/**
+	 * Valida una firma, opcionalmente con su documento original (firmas detached como CAdES).
+	 * @param signature Firma reconocible por DSS.
+	 * @param caCertificate Certificado de la CA en DER.
+	 * @param detachedContent Documento firmado, o {@code null} si la firma lo incluye.
+	 * @return Resultado con indicaci&oacute;n, subindicaci&oacute;n y formato detectado.
+	 * @throws ValidationException Si la firma o la CA no se pueden procesar.
+	 */
+	public static Result validate(final byte[] signature, final byte[] caCertificate, final byte[] detachedContent)
+			throws ValidationException {
 
 		if (signature == null || signature.length == 0) {
 			throw new ValidationException("firma vacia");
@@ -76,6 +89,10 @@ public final class DssValidator {
 		verifier.setOcspSource(null);
 		verifier.setCrlSource(null);
 		validator.setCertificateVerifier(verifier);
+		if (detachedContent != null) {
+			// Firma detached (CAdES): DSS necesita el documento original para validarla.
+			validator.setDetachedContents(Collections.singletonList(new InMemoryDocument(detachedContent)));
+		}
 
 		final Reports reports;
 		try {

@@ -90,15 +90,21 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p "$INTEROP_OUT"
-          # El vector debe ser autocontenido (XAdES enveloped): el contrato del validador es
-          # {signature, ca} y una CAdES detached no se puede validar sin el documento original.
+          # Dos vectores: XAdES enveloped (autocontenido) y CAdES detached (necesita el
+          # documento original, que se envia en el campo opcional 'content').
           printf '<?xml version="1.0" encoding="UTF-8"?>\n<interop>vector sintetico</interop>\n' > "$RUNNER_TEMP/vector.xml"
+          printf 'vector sintetico de interoperabilidad\n' > "$RUNNER_TEMP/plain.txt"
           mvn -B -q -Denv=install -pl afirma-simple -am -DskipTests package
           java -jar afirma-simple/target/autofirma.jar sign \
             -i "$RUNNER_TEMP/vector.xml" -o "$INTEROP_OUT/firma.xsig" \
             -store "pkcs12:$INTEROP_CERTS_DIR/rsa.p12" \
             -password "$(cat "$INTEROP_CERTS_DIR/p12pass")" \
             -alias interop-rsa -format xades
+          java -jar afirma-simple/target/autofirma.jar sign \
+            -i "$RUNNER_TEMP/plain.txt" -o "$INTEROP_OUT/firma.csig" \
+            -store "pkcs12:$INTEROP_CERTS_DIR/rsa.p12" \
+            -password "$(cat "$INTEROP_CERTS_DIR/p12pass")" \
+            -alias interop-rsa -format cades
 
       - name: Log in to GHCR for the DSS image
         run: |
@@ -108,7 +114,7 @@ jobs:
       # Mientras no exista la primera imagen publicada (vars.DSS_IMAGE vacia) este paso
       # queda en modo aviso: no bloquea el PR. En cuanto haya imagen, vuelve a ser
       # bloqueante. Condicion de salida documentada en docs/security/INTEROP-DSS.md.
-      - name: A4 · EU DSS validation (REST, TOTAL_PASSED)
+      - name: A4 · EU DSS validation (XAdES enveloped + CAdES detached)
         continue-on-error: ${{ vars.DSS_IMAGE == '' }}
         env:
           INTEROP_OUT: ${{ runner.temp }}/interop-out
@@ -122,7 +128,10 @@ jobs:
           if [ -z "${DSS_IMAGE:-}" ] && [ -z "${DSS_URL:-}" ]; then
             echo "::warning title=A4 en modo aviso::No hay imagen de DSS publicada (vars.DSS_IMAGE) ni instancia (vars.DSS_URL). Lanza el workflow 'DSS image' y asigna el digest. Ver docs/security/INTEROP-DSS.md"
           fi
+          echo "[interop] vector 1/2: XAdES enveloped"
           bash scripts/interop/dss-validate.sh "$INTEROP_OUT/firma.xsig" "$INTEROP_CERTS_DIR/ca.crt"
+          echo "[interop] vector 2/2: CAdES detached con documento original"
+          bash scripts/interop/dss-validate.sh "$INTEROP_OUT/firma.csig" "$INTEROP_CERTS_DIR/ca.crt" "$RUNNER_TEMP/plain.txt"
 
       - name: C · Repository hygiene (no PKCS#12 committed)
         run: |

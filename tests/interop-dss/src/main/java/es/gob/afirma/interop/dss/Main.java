@@ -86,9 +86,11 @@ public final class Main {
 
 		final byte[] signature;
 		final byte[] ca;
+		final byte[] content;
 		try {
 			signature = Base64.getDecoder().decode(requireText(json, "signature")); //$NON-NLS-1$
 			ca = Base64.getDecoder().decode(requireText(json, "ca")); //$NON-NLS-1$
+			content = json.hasNonNull("content") ? Base64.getDecoder().decode(json.get("content").asText()) : null; //$NON-NLS-1$ //$NON-NLS-2$
 		}
 		catch (final IllegalArgumentException | NullPointerException e) {
 			respond(exchange, 400, Map.of("error", "faltan 'signature' y 'ca' en base64")); //$NON-NLS-1$ //$NON-NLS-2$
@@ -96,10 +98,11 @@ public final class Main {
 		}
 
 		// Trazabilidad sin contenido: solo hashes.
-		LOGGER.info(() -> "validate signature_sha256=" + sha256(signature) + " ca_sha256=" + sha256(ca)); //$NON-NLS-1$ //$NON-NLS-2$
+		LOGGER.info(() -> "validate signature_sha256=" + sha256(signature) + " ca_sha256=" + sha256(ca) //$NON-NLS-1$ //$NON-NLS-2$
+			+ (content == null ? "" : " content_sha256=" + sha256(content))); //$NON-NLS-1$ //$NON-NLS-2$
 
 		try {
-			final DssValidator.Result result = DssValidator.validate(signature, ca);
+			final DssValidator.Result result = DssValidator.validate(signature, ca, content);
 			final ObjectNode response = MAPPER.createObjectNode();
 			response.put("indication", result.indication()); //$NON-NLS-1$
 			response.put("subIndication", result.subIndication()); //$NON-NLS-1$
