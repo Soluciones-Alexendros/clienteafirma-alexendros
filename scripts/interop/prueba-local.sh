@@ -30,8 +30,12 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 DEFAULT_P12="/home/alexendros/Documents/certificadoFNMT.p12"
 
 SELF_TEST=0
+CHECK_ONLY=0
 if [ "${1:-}" = "--self-test" ]; then
 	SELF_TEST=1
+	shift
+elif [ "${1:-}" = "--check-p12" ]; then
+	CHECK_ONLY=1
 	shift
 fi
 P12="${1:-${INTEROP_P12:-$DEFAULT_P12}}"
@@ -56,6 +60,35 @@ free_port() {
 	done
 	return 1
 }
+
+# ---------------------------------------------------------------- diagnostico del .p12
+# Muchos PKCS#12 de emisores espanoles (FNMT incluida) cifran el certificado con RC2-40,
+# que OpenSSL 3 solo descifra con el proveedor "legacy". Sin contrasena se puede saber.
+describe_p12() {
+	local f="$1" hex
+	hex="$(openssl asn1parse -in "$f" -inform DER 2>/dev/null | grep -oE '2A864886F70D010C010[0-9A-F]' | sort -u || true)"
+	echo "[check-p12] algoritmos encontrados:"
+	case "$hex" in
+		*2A864886F70D010C0106*) echo "  - pbeWithSHA1And40BitRC2-CBC (RC2-40): requiere -legacy" ;;
+	esac
+	case "$hex" in
+		*2A864886F70D010C0103*) echo "  - pbeWithSHA1And3-KeyTripleDES-CBC (3DES)" ;;
+	esac
+	case "$hex" in
+		*2A864886F70D010C0102*) echo "  - PBES2 (AES/PBKDF2)" ;;
+	esac
+	[ -n "$hex" ] || echo "  - no se han podido leer los algoritmos del contenedor"
+}
+
+if [ "$CHECK_ONLY" = "1" ]; then
+	[ -f "$P12" ] || fail "no existe el fichero: $P12"
+	echo "[check-p12] fichero: $P12"
+	printf '[check-p12] tamano: %s bytes\n' "$(stat -c %s "$P12")"
+	describe_p12 "$P12"
+	echo "[check-p12] OpenSSL: $(openssl version)"
+	echo "[check-p12] proveedor legacy: $(openssl list -providers -provider legacy 2>/dev/null | grep -c 'status: active') activo(s)"
+	exit 0
+fi
 
 # ---------------------------------------------------------------- 0. comprobaciones
 step "0/7 Comprobaciones previas"
@@ -109,10 +142,28 @@ else
 fi
 
 # La contrasena va a openssl por el descriptor 3: no aparece en argv ni en el entorno.
-exec 3< <(printf '%s' "$P12_PASS")
-openssl pkcs12 -in "$P12" -passin fd:3 -nodes -out "$WORK/bundle.pem" >/dev/null 2>&1 \
-	|| fail "no se pudo abrir el PKCS#12 (contrasena incorrecta o fichero danado)"
-exec 3<&-
+P12_ERR="$WORK/openssl.err"
+read_p12() {
+	exec 3< <(printf '%s' "$P12_PASS")
+	openssl pkcs12 "$@" -in "$P12" -passin fd:3 -nodes -out "$WORK/bundle.pem" 2>"$P12_ERR"
+	local rc=$?
+	exec 3<&-
+	return "$rc"
+}
+
+if ! read_p12; then
+	# Los PKCS#12 con RC2-40 o 3DES necesitan el proveedor legacy en OpenSSL 3.
+	if grep -qiE "unsupported|legacy|rc2|unknown cipher|no such" "$P12_ERR"; then
+		echo "[prueba-local] el contenedor usa cifrado heredado; reintentando con -legacy"
+	fi
+	if ! read_p12 -legacy; then
+		echo "[prueba-local] OpenSSL dice:" >&2
+		sed 's/^/  /' "$P12_ERR" >&2 || true
+		echo "[prueba-local] algoritmos del contenedor:" >&2
+		describe_p12 "$P12" >&2
+		fail "no se pudo abrir el PKCS#12 (mira el mensaje de OpenSSL arriba)"
+	fi
+fi
 unset P12_PASS
 
 awk -v dir="$WORK" '/BEGIN CERTIFICATE/{n++} n>0{print > (dir "/cert" n ".pem")}' "$WORK/bundle.pem"
