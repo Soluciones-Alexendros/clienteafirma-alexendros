@@ -21,7 +21,8 @@
 #
 # Variables:
 #   INTEROP_P12         ruta por defecto si no se pasa argumento
-#   INTEROP_BROWSERS    navegadores (por defecto firefox,chromium,msedge)
+#   INTEROP_BROWSERS    navegadores (por defecto los instalados)
+#   INTEROP_CA          ruta a la CA emisora en PEM, si el .p12 no la incluye
 #   INTEROP_STRICT_DSS=1  exige TOTAL_PASSED en DSS (por defecto INDETERMINATE es observacion)
 #   --self-test         usa certificados sinteticos (desarrollo del script; nunca su .p12)
 set -euo pipefail
@@ -40,6 +41,7 @@ elif [ "${1:-}" = "--check-p12" ]; then
 fi
 P12="${1:-${INTEROP_P12:-$DEFAULT_P12}}"
 ALIAS="${2:-}"
+CA_OVERRIDE="${INTEROP_CA:-}"
 OUT_ROOT="$ROOT/interop-local"
 STAMP="$(date +%Y%m%d-%H%M%S)"
 OUT="$OUT_ROOT/$STAMP"
@@ -169,9 +171,36 @@ unset P12_PASS
 awk -v dir="$WORK" '/BEGIN CERTIFICATE/{n++} n>0{print > (dir "/cert" n ".pem")}' "$WORK/bundle.pem"
 [ -s "$WORK/cert1.pem" ] || fail "el PKCS#12 no contiene certificados"
 cp "$WORK/cert1.pem" "$WORK/leaf.crt"
-LAST_CERT=1
-for f in "$WORK"/cert*.pem; do LAST_CERT="${f##*/cert}"; LAST_CERT="${LAST_CERT%.pem}"; done
-cp "$WORK/cert$LAST_CERT.pem" "$WORK/ca.crt"
+
+# Un .p12 puede traer varias CA. El ancla de confianza debe ser la que EMITE el
+# certificado de firma, no "la ultima del fichero".
+LEAF_ISSUER="$(openssl x509 -in "$WORK/leaf.crt" -noout -issuer -nameopt RFC2253 2>/dev/null | sed 's/^issuer=//')"
+CA_CANDIDATES=0
+for f in "$WORK"/cert*.pem; do
+	[ "$f" = "$WORK/cert1.pem" ] && continue
+	CA_CANDIDATES=$((CA_CANDIDATES + 1))
+	subj="$(openssl x509 -in "$f" -noout -subject -nameopt RFC2253 2>/dev/null | sed 's/^subject=//')"
+	if [ -n "$LEAF_ISSUER" ] && [ "$subj" = "$LEAF_ISSUER" ]; then
+		cp "$f" "$WORK/ca.crt"
+	fi
+done
+if [ -n "$CA_OVERRIDE" ]; then
+	[ -f "$CA_OVERRIDE" ] || fail "no existe la CA indicada en INTEROP_CA: $CA_OVERRIDE"
+	cp "$CA_OVERRIDE" "$WORK/ca.crt"
+	echo "[prueba-local] CA indicada manualmente: $CA_OVERRIDE"
+elif [ ! -s "$WORK/ca.crt" ]; then
+	# Ninguna CA del .p12 emite el certificado: se usa la ultima y se avisa.
+	LAST_CERT=1
+	for f in "$WORK"/cert*.pem; do LAST_CERT="${f##*/cert}"; LAST_CERT="${LAST_CERT%.pem}"; done
+	cp "$WORK/cert$LAST_CERT.pem" "$WORK/ca.crt"
+	echo "[prueba-local] AVISO: ninguna CA del .p12 emite el certificado de firma ($CA_CANDIDATES candidatas)."
+	echo "[prueba-local] AVISO: se usa la ultima; DSS podria responder NO_CERTIFICATE_CHAIN_FOUND."
+	echo "[prueba-local] AVISO: si ocurre, repite con INTEROP_CA=<ruta a la CA emisora en PEM>."
+fi
+CA_SUBJ_CHECK="$(openssl x509 -in "$WORK/ca.crt" -noout -subject -nameopt RFC2253 2>/dev/null | sed 's/^subject=//')"
+if [ "$CA_SUBJ_CHECK" != "$LEAF_ISSUER" ]; then
+	echo "[prueba-local] AVISO: el ancla elegida no coincide con el emisor del certificado."
+fi
 
 awk '/BEGIN PRIVATE KEY/,/END PRIVATE KEY/' "$WORK/bundle.pem" > "$WORK/leaf.key"
 [ -s "$WORK/leaf.key" ] || fail "el PKCS#12 no contiene la clave privada"
