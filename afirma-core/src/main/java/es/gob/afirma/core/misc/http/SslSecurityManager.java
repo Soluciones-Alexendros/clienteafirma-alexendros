@@ -69,7 +69,7 @@ public final class SslSecurityManager {
 	private static final String KEYSTORE_TYPE = "javax.net.ssl.keyStoreType"; //$NON-NLS-1$
 	private static final String KEYSTORE_DEFAULT_TYPE = "JKS"; //$NON-NLS-1$
 
-	private static final String SSL_CONTEXT = "SSL";//$NON-NLS-1$
+	private static final String SSL_CONTEXT = "TLSv1.2";//$NON-NLS-1$
 
 	private static final HostnameVerifier DEFAULT_HOSTNAME_VERIFIER = HttpsURLConnection.getDefaultHostnameVerifier();
 	private static final SSLSocketFactory DEFAULT_SSL_SOCKET_FACTORY = HttpsURLConnection.getDefaultSSLSocketFactory();
@@ -426,7 +426,7 @@ public final class SslSecurityManager {
 
 		LOGGER.info("Se configura el almacen de confianza de Autofirma"); //$NON-NLS-1$
 
-		final SSLContext sslContext = SSLContext.getInstance("SSL"); //$NON-NLS-1$
+		final SSLContext sslContext = SSLContext.getInstance(SSL_CONTEXT);
 		sslContext.init(null, new TrustManager[] { trustManager }, secureRandom);
 
 		HttpsURLConnection.setDefaultSSLSocketFactory(sslContext.getSocketFactory());

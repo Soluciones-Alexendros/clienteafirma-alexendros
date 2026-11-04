@@ -149,6 +149,7 @@ el modo permisivo exige acción explícita, avisa con el motivo y solo afecta a 
 | SHA-1 permitido en ODF | Compatibilidad con firmas ODF heredadas (`AOSignConstants.isSHA1AllowedForFormat`, L439–446) | Se mantiene mientras existan documentos ODF firmados con SHA-1 en circulación; revisar en cada fase |
 | SHA-1 prohibido en XAdES, CAdES y PAdES | `AOSignConstants.validateSHA1ForFormat` (L454) lanza `IllegalArgumentException`; cubierto por `SHA1RejectionTest` | Cierre verificado por `make test` (T10) |
 | Canal local sin TLS 1.3 | El objetivo de compilación es Java 8, que no soporta TLS 1.3, y sus suites forman un conjunto distinto del de TLS 1.2 | Reabrir si se eleva el objetivo mínimo a Java 11 (T3) |
+| Conexiones salientes fijadas a TLS 1.2 | `SslSecurityManager` construye sus `SSLContext` con `TLSv1.2` (antes `SSL`, que permitía versiones obsoletas); Java 8 no implementa TLS 1.3 | Al subir a Java 11, pasar a `TLS` con suites de 1.3 habilitadas (T5) |
 | WAR trifásico fuera de alcance | Laboratorio F8, no desplegado | Reabrir V4/V13 si se expone |
 
 ## 8. Riesgo residual registrado fuera de esta matriz
