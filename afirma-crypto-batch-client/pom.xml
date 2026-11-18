@@ -18,13 +18,19 @@
 	<dependencies>
 		<dependency>
 			<groupId>es.gob.afirma</groupId>
+			<artifactId>afirma-crypto-core-pkcs7</artifactId>
+			<version>${clienteafirma.version}</version>
+		</dependency>
+
+		<dependency>
+			<groupId>es.gob.afirma</groupId>
 			<artifactId>afirma-core</artifactId>
 			<version>${clienteafirma.version}</version>
 		</dependency>
 		<dependency>
     		<groupId>org.json</groupId>
     		<artifactId>json</artifactId>
-    		<version>20240303</version>
+    		<version>20260814</version>
 		</dependency>
 		<dependency>
 			<groupId>junit</groupId>
