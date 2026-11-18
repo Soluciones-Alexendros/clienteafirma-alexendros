@@ -31,8 +31,7 @@ public final class LocalChannelRepro {
 
     /** Envia una peticion HTTP en crudo y devuelve la respuesta. */
     private static String sendRaw(final int port, final String request) throws Exception {
-        // nosemgrep: java.lang.security.audit.crypto.unencrypted-socket.unencrypted-socket -- canal local loopback bajo prueba, test
-        try (Socket socket = new Socket(InetAddress.getByName("127.0.0.1"), port)) {
+        try (Socket socket = new Socket(InetAddress.getByName("127.0.0.1"), port)) { // nosemgrep: java.lang.security.audit.crypto.unencrypted-socket.unencrypted-socket -- canal local loopback bajo prueba, test
             socket.setSoTimeout(10000);
             final OutputStream out = socket.getOutputStream();
             out.write(request.getBytes(StandardCharsets.UTF_8));
@@ -73,8 +72,7 @@ public final class LocalChannelRepro {
 
     public static void main(final String[] args) throws Exception {
         // A) Canal HTTP sin idsession y con Origin desconocido
-        // nosemgrep: java.lang.security.audit.crypto.unencrypted-socket.unencrypted-socket -- canal local loopback bajo prueba, test
-        final ServerSocket serverSocket = new ServerSocket(0, 5, InetAddress.getByName("127.0.0.1"));
+        final ServerSocket serverSocket = new ServerSocket(0, 5, InetAddress.getByName("127.0.0.1")); // nosemgrep: java.lang.security.audit.crypto.unencrypted-socket.unencrypted-socket -- canal local loopback bajo prueba, test
         final Timer timer = new Timer(600000, evt -> { });
         timer.setRepeats(false);
         final Thread acceptor = new Thread(() -> {
@@ -106,8 +104,7 @@ public final class LocalChannelRepro {
         System.out.println("A) CORS Vary: " + header(httpResponse, "Vary"));
 
         // B) Websocket sin idsession, canal sin identificador
-        // nosemgrep: java.lang.security.audit.crypto.unencrypted-socket.unencrypted-socket -- canal local loopback bajo prueba, test
-        final ServerSocket probe = new ServerSocket(0, 1, InetAddress.getByName("127.0.0.1"));
+        final ServerSocket probe = new ServerSocket(0, 1, InetAddress.getByName("127.0.0.1")); // nosemgrep: java.lang.security.audit.crypto.unencrypted-socket.unencrypted-socket -- canal local loopback bajo prueba, test
         final int wsPort = probe.getLocalPort();
         probe.close();
         final AfirmaWebSocketServerV4Sup server = new AfirmaWebSocketServerV4Sup(wsPort, null,
