@@ -19,7 +19,7 @@ Binary-Artifacts, Fuzzing, Signed-Releases), no código sin triar.
 
 | Regla | Alertas | Estado | Motivo |
 |---|---|---|---|
-| `PinnedDependenciesID` | 4 | **Arreglada** | Instalaciones `pip` sin hashes → ahora `--require-hashes` con `requirements/ci-*.txt`. Verificado: Scorecard ya no las reporta. |
+| `PinnedDependenciesID` | 4+1 | **Arreglada** | Instalaciones `pip` sin hashes → `--require-hashes` con `requirements/ci-*.txt`. Tras T3 Interop: `npm install playwright` en `interop.yml` → `npm ci` + `playwright` en `package-lock.json`. |
 | Semgrep OSS (18 reglas) | 99 | **Arregladas (13) o descartadas con motivo (86)** | Triaje en [`semgrep-triage.md`](semgrep-triage.md). Incluye el hallazgo de que el escaneo llevaba tiempo sin ejecutarse. |
 | `BinaryArtifactsID` | 20 | Descartada (justificada) | Binarios heredados del proyecto oficial; ver `docs/binarios-heredados.md`. |
 | `CIIBestPracticesID` | 1 | Descartada (justificada) | Requiere solicitud humana al programa OpenSSF Best Practices Badge. |

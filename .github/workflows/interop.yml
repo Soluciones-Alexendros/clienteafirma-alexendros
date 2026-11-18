@@ -41,6 +41,7 @@ jobs:
         uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4.1.0
         with:
           node-version: '22'
+          cache: npm
 
       - name: Install system tooling
         run: |
@@ -80,7 +81,8 @@ jobs:
           INTEROP_OUT: ${{ runner.temp }}/interop-out
         run: |
           set -euo pipefail
-          npm install --no-save playwright@1.64.1
+          # Scorecard Pinned-Dependencies: solo npm ci (lockfile con integrity hashes).
+          npm ci
           npx playwright install --with-deps firefox chromium
           node scripts/interop/browser-interop.mjs
 

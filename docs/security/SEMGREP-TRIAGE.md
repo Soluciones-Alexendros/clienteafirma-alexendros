@@ -41,7 +41,7 @@ No se cierran alertas en la pestaña Security con dismiss manual: las de `correg
 | `ecb-cipher` / `des-is-deprecated` / `cbc-padding-oracle` | varios | `aceptado (riesgo)` | Cifrado legacy / módulos cipher; backlog CodeQL high |
 | `django-no-csrf-token` | 1 | `falso positivo (motivo)` | Falso positivo en árbol Java/desktop (ruido Semgrep `auto`) |
 | `path-join-resolve-traversal` (JS) | 1 | `aceptado (riesgo)` | Demo / portal heredado |
-| `unencrypted-socket` | 1 | `aceptado (riesgo)` | Socket local del protocolo `afirma://` |
+| `unencrypted-socket` | 1+6 | `aceptado (riesgo)` / `falso positivo (motivo)` | Socket local del protocolo `afirma://`; harnesses de test en loopback con `nosemgrep` + exclusión en `.semgrepignore` (HttpChannelIntegrationTest, LocalChannelTestSupport, local-channel-repro) |
 
 ## Command-injection ProcessBuilder (detalle)
 
