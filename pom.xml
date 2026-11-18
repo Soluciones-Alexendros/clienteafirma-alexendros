@@ -145,6 +145,13 @@
 				<scope>test</scope>
 			</dependency>
 
+			<!-- GHSA-ghc9-756g-vrcv / CVE-2026-59171: numeric DoS in JSONTokener; fixed in 20260719+ -->
+			<dependency>
+				<groupId>org.json</groupId>
+				<artifactId>json</artifactId>
+				<version>20260814</version>
+			</dependency>
+
 		</dependencies>
 	</dependencyManagement>
 	
