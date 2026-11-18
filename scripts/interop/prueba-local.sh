@@ -294,7 +294,7 @@ if node -e "require.resolve('playwright')" >/dev/null 2>&1; then
 		node "$ROOT/scripts/interop/browser-interop.mjs" > "$OUT/browsers.log" 2>&1 \
 		|| echo "[prueba-local] A2 con fallos; detalle en $OUT/browsers.log"
 else
-	echo "[prueba-local] Playwright no instalado: A2 omitido (npm i --no-save playwright)" \
+	echo "[prueba-local] Playwright no instalado: A2 omitido (npm ci / playwright en package.json)" \
 		> "$OUT/browsers.log"
 fi
 

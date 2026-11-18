@@ -22,3 +22,10 @@ afirma-simple-installer/
 
 # Documentacion javadoc empaquetada (HTML con enlaces de referencia).
 **/doc-files/
+
+# Harnesses de canal local: sockets plaintext deliberados en loopback 127.0.0.1
+# (pruebas de rechazo Origin/idSession). El producto usa SSLServerSocket.
+# Motivo y nosemgrep en linea; exclusion para que Semgrep OSS no reabra alertas.
+afirma-simple/src/test/java/es/gob/afirma/standalone/protocol/HttpChannelIntegrationTest.java
+afirma-simple/src/test/java/es/gob/afirma/standalone/protocol/LocalChannelTestSupport.java
+tests/local-channel-repro/
