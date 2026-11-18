@@ -17,8 +17,11 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.java_websocket.WebSocket;
+import org.java_websocket.drafts.Draft;
+import org.java_websocket.exceptions.InvalidDataException;
 import org.java_websocket.framing.CloseFrame;
 import org.java_websocket.handshake.ClientHandshake;
+import org.java_websocket.handshake.ServerHandshakeBuilder;
 import org.java_websocket.server.WebSocketServer;
 
 import es.gob.afirma.core.misc.protocol.LocalChannelSessions;
@@ -110,10 +113,26 @@ public class AfirmaWebSocketServer extends WebSocketServer {
 		});
 	}
 
+	/**
+	 * Rechaza el saludo si el <code>Origin</code> no esta permitido en modo estricto.
+	 * Hacerlo en el handshake evita la carrera en la que <code>connectBlocking</code>
+	 * del cliente ve el cierre de <code>onOpen</code> como un fallo de conexion.
+	 */
+	@Override
+	public ServerHandshakeBuilder onWebsocketHandshakeReceivedAsServer(final WebSocket conn,
+			final Draft draft,
+			final ClientHandshake request) throws InvalidDataException {
+		if (!checkOrigin(request)) {
+			throw new InvalidDataException(CloseFrame.POLICY_VALIDATION, "Origen no permitido"); //$NON-NLS-1$
+		}
+		return super.onWebsocketHandshakeReceivedAsServer(conn, draft, request);
+	}
+
 	@Override
 	public void onOpen(final WebSocket ws, final ClientHandshake handshake) {
 		LOGGER.info("Apertura del socket del puerto " + getAddress().getPort()); //$NON-NLS-1$
 
+		// Defensa en profundidad: el rechazo principal esta en el handshake.
 		if (!checkOrigin(handshake)) {
 			ws.close(CloseFrame.POLICY_VALIDATION, "Origen no permitido"); //$NON-NLS-1$
 			return;

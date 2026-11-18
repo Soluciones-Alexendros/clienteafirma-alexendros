@@ -14,6 +14,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 
 import org.java_websocket.client.WebSocketClient;
+import org.java_websocket.framing.CloseFrame;
 import org.java_websocket.handshake.ServerHandshake;
 import org.junit.After;
 import org.junit.Assert;
@@ -233,10 +234,22 @@ public class WebSocketChannelIntegrationTest {
 		LocalChannelTestSupport.configure(true, ALLOWED_ORIGIN);
 		this.validator.register(SESSION_ID);
 
-		final TestClient client = connect("https://evil.example"); //$NON-NLS-1$
+		// El rechazo ocurre en el handshake: connectBlocking suele devolver false
+		// (a veces con codigo 1002 del cliente). Si el open llega a completarse,
+		// el servidor cierra con POLICY_VALIDATION (1008).
+		final TestClient client = new TestClient(this.port, "https://evil.example"); //$NON-NLS-1$
+		final boolean opened = client.connectBlocking(10, TimeUnit.SECONDS);
 		try {
-			Assert.assertTrue("El servidor debe cerrar la conexion", client.awaitClose()); //$NON-NLS-1$
-			Assert.assertEquals(1008, client.getCloseCode());
+			if (opened) {
+				Assert.assertTrue("El servidor debe cerrar la conexion", client.awaitClose()); //$NON-NLS-1$
+				Assert.assertEquals(CloseFrame.POLICY_VALIDATION, client.getCloseCode());
+			}
+			else {
+				Assert.assertFalse(
+						"El origen no permitido no debe dejar el socket abierto", //$NON-NLS-1$
+						client.isOpen()
+				);
+			}
 		}
 		finally {
 			client.close();
